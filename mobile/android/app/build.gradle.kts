@@ -5,10 +5,23 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-common:1.8.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
+        force("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22")
+        force("androidx.core:core-ktx:1.12.0")
+        force("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+        force("org.jetbrains.kotlin:kotlin-bom:1.8.22")
+    }
+}
+
 android {
     namespace = "com.example.mobile"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

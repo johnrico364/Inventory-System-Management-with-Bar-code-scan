@@ -1,7 +1,22 @@
+buildscript {
+    extra.apply {
+        set("kotlin_version", "1.8.22")
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22")
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://plugins.gradle.org/m2/") }
+        maven { url = uri("https://maven.google.com") }
     }
 }
 
