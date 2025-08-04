@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'camera_scanner_page.dart';
+import 'quantity_input_page.dart';
 
 class HomePage extends StatefulWidget {
   final String? scanResult;
@@ -14,6 +15,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   String _scanResult = 'No barcode scanned yet';
   final TextEditingController _barcodeController = TextEditingController();
+  bool _isInItemMode = true; // true for "in item", false for "out item"
 
   @override
   void initState() {
@@ -24,54 +26,162 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _showManualInputDialog(BuildContext context) {
+    _barcodeController.clear();
+    _isInItemMode = true; // Reset to default mode
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Enter Barcode',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _barcodeController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter barcode number',
-                    hintStyle: GoogleFonts.poppins(),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Column(
+                children: [
+                  Text(
+                    'Manual Barcode Input',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
-                  keyboardType: TextInputType.number,
+                  const SizedBox(height: 10),
+                  // Mode Switch
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _isInItemMode ? 'IN' : 'OUT',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _isInItemMode ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Switch(
+                          value: _isInItemMode,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _isInItemMode = value;
+                            });
+                          },
+                          activeColor: Colors.green,
+                          inactiveThumbColor: Colors.red,
+                          inactiveTrackColor: Colors.red.withOpacity(0.3),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isInItemMode ? 'Adding Items' : 'Removing Items',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: _isInItemMode ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _barcodeController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter barcode number',
+                        hintStyle: GoogleFonts.poppins(),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        prefixIcon: const Icon(Icons.qr_code),
+                        labelText: 'Barcode',
+                      ),
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 15),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _isInItemMode ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isInItemMode ? Colors.green : Colors.red,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isInItemMode ? Icons.add_circle : Icons.remove_circle,
+                            color: _isInItemMode ? Colors.green : Colors.red,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _isInItemMode 
+                                ? 'Items will be added to inventory'
+                                : 'Items will be removed from inventory',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: _isInItemMode ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700])),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_barcodeController.text.isNotEmpty) {
+                      final barcode = _barcodeController.text.trim();
+                      Navigator.of(context).pop();
+                      
+                      // Navigate to quantity input page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuantityInputPage(
+                            barcode: barcode,
+                            isInItemMode: _isInItemMode,
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a barcode'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1a237e),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Proceed', style: GoogleFonts.poppins(color: Colors.white)),
                 ),
               ],
-            ),
-          ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700])),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_barcodeController.text.isNotEmpty) {
-                  setState(() {
-                    _scanResult = _barcodeController.text;
-                  });
-                  _barcodeController.clear();
-                  Navigator.of(context).pop();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1a237e),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text('Submit', style: GoogleFonts.poppins(color: Colors.white)),
-            ),
-          ],
+            );
+          },
         );
       },
     );

@@ -8,7 +8,8 @@ export default function Navbar() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/products', label: 'Products', icon: '📦' },
+    { href: '/products', label: 'Products', icon: '��' },
+    { href: '/archived', label: 'Archived', icon: '🗂️' },
     { href: '/staffs', label: 'Staff', icon: '👥' },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
   ];
