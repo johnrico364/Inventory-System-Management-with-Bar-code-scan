@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import JsBarcode from 'jsbarcode';
 import AddProductModal from './modal/AddproductModal';
+import EditProductModal from './modal/EditProductModal';
+import DeleteProductModal from './modal/DeleteProductModal';
 import ProductDetails from './Productdetails';
 
 interface Product {
-  id: string;
+  _id: string;
   brand: string;
   barcode: number;
   description: string;
@@ -21,6 +23,8 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -37,7 +41,7 @@ export default function Products() {
       setLoading(true);
       setError('');
       console.log('📡 Fetching products from API...');
-      const response = await fetch('http://localhost:4000/api/products');
+      const response = await fetch('http://localhost:4000/api/products/get');
       console.log('📥 Products response:', response.status, response.statusText);
       
       if (!response.ok) {
@@ -61,39 +65,94 @@ export default function Products() {
 
   // Generate barcodes for products dynamically
   const generateBarcodes = () => {
-    products.forEach((product) => {
-      const barcodeId = `barcode-${product.id}`;
+    console.log('🎨 Starting barcode generation for', products.length, 'products');
+    
+    products.forEach((product, index) => {
+      const barcodeId = `barcode-${product._id}`;
       const headerId = `header-barcode`;
 
       const barcodeEl = document.getElementById(barcodeId);
-      const headerEl = product.id === products[0]?.id ? document.getElementById(headerId) : null;
+      const headerEl = product._id === products[0]?._id ? document.getElementById(headerId) : null;
+
+      console.log(`📊 Generating barcode ${index + 1}/${products.length}:`, {
+        productId: product._id,
+        barcodeValue: product.barcode,
+        barcodeElement: barcodeEl ? 'Found' : 'Not found',
+        headerElement: headerEl ? 'Found' : 'Not found'
+      });
 
       if (barcodeEl) {
         try {
-          JsBarcode(barcodeEl, product.barcode.toString(), {
+          // Create canvas for barcode image
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 200;
+          canvas.height = 60;
+          
+          // Generate barcode on canvas
+          JsBarcode(canvas, product.barcode.toString(), {
             format: 'CODE128',
             width: 2,
-            height: 40,
-            displayValue: true
+            height: 50,
+            displayValue: true,
+            fontSize: 12,
+            margin: 5
           });
+          
+          // Convert canvas to image
+          const img = document.createElement('img');
+          img.src = canvas.toDataURL();
+          img.alt = `Barcode: ${product.barcode}`;
+          img.className = 'max-w-full h-auto';
+          
+          // Clear existing content and add image
+          barcodeEl.innerHTML = '';
+          barcodeEl.appendChild(img);
+          
+          console.log(`✅ Barcode generated successfully for product ${product._id}`);
         } catch (error) {
-          console.error('Error generating barcode for product:', product.barcode, error);
+          console.error('❌ Error generating barcode for product:', product.barcode, error);
         }
+      } else {
+        console.warn(`⚠️ Barcode element not found for product ${product._id}`);
       }
 
       if (headerEl) {
         try {
-          JsBarcode(headerEl, product.barcode.toString(), {
+          // Create canvas for header barcode image
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 250;
+          canvas.height = 80;
+          
+          // Generate barcode on canvas
+          JsBarcode(canvas, product.barcode.toString(), {
             format: 'CODE128',
             width: 2,
-            height: 50,
-            displayValue: true
+            height: 70,
+            displayValue: true,
+            fontSize: 14,
+            margin: 8
           });
+          
+          // Convert canvas to image
+          const img = document.createElement('img');
+          img.src = canvas.toDataURL();
+          img.alt = `Header Barcode: ${product.barcode}`;
+          img.className = 'max-w-full h-auto';
+          
+          // Clear existing content and add image
+          headerEl.innerHTML = '';
+          headerEl.appendChild(img);
+          
+          console.log(`✅ Header barcode generated successfully`);
         } catch (error) {
-          console.error('Error generating header barcode:', error);
+          console.error('❌ Error generating header barcode:', error);
         }
       }
     });
+    
+    console.log('🎨 Barcode generation completed');
   };
 
   // Generate barcodes whenever products change
@@ -137,8 +196,26 @@ export default function Products() {
     fetchProducts(); // Refresh the products list
   };
 
+  const handleProductUpdated = () => {
+    fetchProducts(); // Refresh the products list
+  };
+
+  const handleProductDeleted = () => {
+    fetchProducts(); // Refresh the products list
+  };
+
   const handleOpenAddModal = () => {
     setShowAddModal(true);
+  };
+
+  const handleOpenEditModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowEditModal(true);
+  };
+
+  const handleOpenDeleteModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowDeleteModal(true);
   };
 
   if (loading) {
@@ -224,16 +301,16 @@ export default function Products() {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Product</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stocks</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Barcode Number</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProducts.map(product => (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                  <tr key={product._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <svg id={`barcode-${product.id}`}></svg>
+                      <svg id={`barcode-${product._id}`}></svg>
                     </td>
                     <td className="px-6 py-4">
                       <div 
@@ -249,13 +326,24 @@ export default function Products() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.category}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.stocks}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(product.status)}`}>
-                        {getStatusText(product.status)}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.barcode}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{product.lastUpdated}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleOpenEditModal(product)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleOpenDeleteModal(product)}
+                          className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -273,6 +361,22 @@ export default function Products() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onProductAdded={handleProductAdded}
+      />
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onProductUpdated={handleProductUpdated}
+        product={selectedProduct}
+      />
+
+      {/* Delete Product Modal */}
+      <DeleteProductModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onProductDeleted={handleProductDeleted}
+        product={selectedProduct}
       />
 
       {/* Product Details Modal */}
