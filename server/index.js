@@ -1,6 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
+// routes imports
+const productsRoutes = require("./routes/productRoutes");
+
 const app = express();
 app.use(express.json());
 
@@ -12,3 +15,5 @@ mongoose.connect(_dbURI).then((result) => {
 });
 
 app.listen(4000, () => console.log("Listening on port 4000"));
+
+app.use("/api/products", productsRoutes);
