@@ -5,7 +5,7 @@ import JsBarcode from 'jsbarcode';
 
 interface ProductDetailsProps {
   product: {
-    id: string;
+    _id: string;
     brand: string;
     barcode: number;
     description: string;
@@ -23,14 +23,43 @@ export default function ProductDetails({ product, isOpen, onClose }: ProductDeta
 
   useEffect(() => {
     if (isOpen && barcodeRef.current) {
-      JsBarcode(barcodeRef.current, product.barcode.toString(), {
-        format: 'CODE128',
-        width: 2,
-        height: 60,
-        displayValue: true,
-        fontSize: 12,
-        margin: 5
+      console.log('🎨 Generating barcode for ProductDetails:', {
+        productId: product._id,
+        barcodeValue: product.barcode,
+        elementFound: barcodeRef.current ? 'Yes' : 'No'
       });
+      
+      try {
+        // Create canvas for barcode image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 300;
+        canvas.height = 100;
+        
+        // Generate barcode on canvas
+        JsBarcode(canvas, product.barcode.toString(), {
+          format: 'CODE128',
+          width: 3,
+          height: 80,
+          displayValue: true,
+          fontSize: 16,
+          margin: 10
+        });
+        
+        // Convert canvas to image
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL();
+        img.alt = `Barcode: ${product.barcode}`;
+        img.className = 'max-w-full h-auto';
+        
+        // Clear existing content and add image
+        barcodeRef.current.innerHTML = '';
+        barcodeRef.current.appendChild(img);
+        
+        console.log('✅ ProductDetails barcode generated successfully');
+      } catch (error) {
+        console.error('❌ Error generating ProductDetails barcode:', error);
+      }
     }
   }, [isOpen, product.barcode]);
 

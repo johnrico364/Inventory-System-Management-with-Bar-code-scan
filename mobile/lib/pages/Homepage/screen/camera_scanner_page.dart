@@ -15,6 +15,7 @@ class CameraScannerPage extends StatefulWidget {
 class _CameraScannerPageState extends State<CameraScannerPage> {
   MobileScannerController? _controller;
   final Set<String> _scannedBarcodes = {};
+  bool _isInItemMode = true; // true for "in item", false for "out item"
 
   @override
   void initState() {
@@ -52,11 +53,14 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
         // Pause the scanner before navigating
         _controller?.stop();
         
-        // Navigate to quantity input page
+        // Navigate to quantity input page with the mode
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => QuantityInputPage(barcode: barcode.rawValue!),
+            builder: (context) => QuantityInputPage(
+              barcode: barcode.rawValue!,
+              isInItemMode: _isInItemMode,
+            ),
           ),
         ).then((_) {
           // Resume scanning when returning from quantity input page
@@ -68,25 +72,58 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
     }
   }
 
-
-
   void _switchCamera() {
     _controller?.switchCamera();
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _isInItemMode = !_isInItemMode;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Camera Barcode Scanner',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        
         backgroundColor: const Color(0xFF1a237e),
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
         actions: [
+          // Mode Switch
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    _isInItemMode ? 'IN' : 'OUT',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: _isInItemMode,
+                  onChanged: (value) => _toggleMode(),
+                  activeColor: Colors.green,
+                  inactiveThumbColor: Colors.red,
+                  inactiveTrackColor: Colors.red.withOpacity(0.3),
+                ),
+              ],
+            ),
+          ),
+          // Camera Switch
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -110,6 +147,40 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
         ),
         child: Column(
           children: [
+            // Mode Indicator
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              decoration: BoxDecoration(
+                color: _isInItemMode ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isInItemMode ? Colors.green : Colors.red,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isInItemMode ? Icons.add_circle : Icons.remove_circle,
+                    color: _isInItemMode ? Colors.green : Colors.red,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isInItemMode ? 'Adding Items to Inventory' : 'Removing Items from Inventory',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _isInItemMode ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
             // Camera Preview
             Expanded(
               flex: 2,
