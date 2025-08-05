@@ -7,7 +7,7 @@ import '../../../fetch/fetchproduct.dart';
 class QuantityInputPage extends StatefulWidget {
   final String barcode;
   final bool isInItemMode; // true for "in item", false for "out item"
-  
+
   const QuantityInputPage({
     super.key,
     required this.barcode,
@@ -49,18 +49,22 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
       final isConnected = await ProductService.checkConnectivity();
       if (!isConnected) {
         setState(() {
-          _errorMessage = 'Network connection failed. Please check:\n\n1. Server is running on port 4000\n2. Device is connected to the same network\n3. Firewall allows connections to port 4000';
+          _errorMessage =
+              'Network connection failed. Please check:\n\n1. Server is running on port 4000\n2. Device is connected to the same network\n3. Firewall allows connections to port 4000';
           _isLoading = false;
         });
         return;
       }
 
-      final productData = await ProductService.fetchProductByBarcode(widget.barcode);
+      final productData = await ProductService.fetchProductByBarcode(
+        widget.barcode,
+      );
       if (!mounted) return;
-      
+
       if (productData == null) {
         setState(() {
-          _errorMessage = 'Product with barcode "${widget.barcode}" not found in database.\n\nPlease check:\n1. Barcode is correct\n2. Product exists in inventory\n3. Product is not archived';
+          _errorMessage =
+              'Product with barcode "${widget.barcode}" not found in database.\n\nPlease check:\n1. Barcode is correct\n2. Product exists in inventory\n3. Product is not archived';
           _isLoading = false;
         });
       } else {
@@ -71,7 +75,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       String errorMsg = 'Error fetching product data.\n\n';
       if (e.toString().contains('SocketException')) {
         errorMsg += 'Network connection failed. Please check:\n';
@@ -84,7 +88,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
       } else {
         errorMsg += e.toString();
       }
-      
+
       setState(() {
         _errorMessage = errorMsg;
         _isLoading = false;
@@ -136,20 +140,24 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cannot remove items: Stock is already zero (out of stock)'),
+            content: Text(
+              'Cannot remove items: Stock is already zero (out of stock)',
+            ),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
           ),
         );
         return;
       }
-      
+
       // Check if trying to remove more than available stock
       if (_quantity > currentStock) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Cannot remove $_quantity items: Only $currentStock items available in stock'),
+            content: Text(
+              'Cannot remove $_quantity items: Only $currentStock items available in stock',
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -170,52 +178,57 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
         widget.isInItemMode,
       );
 
-      if (success) {
-        // Log the transaction
-        await ProductService.logTransaction(
-          widget.barcode,
-          _quantity,
-          widget.isInItemMode,
-          null,
-        );
-
-        // Create the scan result string with mode information
-        final modeText = widget.isInItemMode ? 'IN' : 'OUT';
-        final productName = _productData!['brand'] ?? 'Unknown Product';
-        final productCategory = _productData!['category'] ?? 'N/A';
-        final scanResult = 'Barcode: ${widget.barcode} | Product: $productName | Category: $productCategory | Quantity: $_quantity | Mode: $modeText';
-        
-        // Show success message
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isInItemMode 
-                ? 'Successfully added $_quantity items to inventory'
-                : 'Successfully removed $_quantity items from inventory'
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Navigate back to the homepage with the scan result
-        if (!mounted) return;
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        
-        // Pass the result back to the homepage
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => HomePage(scanResult: scanResult),
-          ),
-        );
+      if (!success) {
+        throw Exception('Failed to update product quantity');
       }
+
+      // Log the transaction
+      final transactionSuccess = await ProductService.logTransaction(
+        widget.barcode,
+        _quantity,
+        widget.isInItemMode,
+        null,
+      );
+
+      if (!transactionSuccess) {
+        throw Exception('Failed to log transaction');
+      }
+
+      // Get the updated product data after the transaction
+      final updatedProduct = await ProductService.fetchProductByBarcode(
+        widget.barcode,
+      );
+
+      if (updatedProduct == null) {
+        throw Exception('Failed to fetch updated product data');
+      }
+
+      // Show success message
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.isInItemMode
+                ? 'Successfully added $_quantity items to inventory'
+                : 'Successfully removed $_quantity items from inventory',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Navigate back to the homepage
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
@@ -230,10 +243,10 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
   Widget build(BuildContext context) {
     final isInMode = widget.isInItemMode;
     final primaryColor = isInMode ? Colors.green : Colors.red;
-    final gradientColors = isInMode 
+    final gradientColors = isInMode
         ? [Colors.green, Colors.green.shade700]
         : [Colors.red, Colors.red.shade700];
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -253,97 +266,93 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
             colors: [Colors.white, Color(0xFFf8f9ff)],
           ),
         ),
-        child: _isLoading 
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading product data...'),
-                ],
-              ),
-            )
-          : _errorMessage != null
+        child: _isLoading
+            ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading product data...'),
+                  ],
+                ),
+              )
+            : _errorMessage != null
             ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Connection Error',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           color: Colors.red,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Connection Error',
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red[200]!),
                         ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.red[200]!),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Troubleshooting Steps:',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red[800],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _errorMessage!,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Colors.red[700],
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ElevatedButton.icon(
-                              onPressed: _fetchProductData,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
+                            Text(
+                              'Troubleshooting Steps:',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red[800],
                               ),
                             ),
-                            ElevatedButton.icon(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.arrow_back),
-                              label: const Text('Go Back'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey,
-                                foregroundColor: Colors.white,
+                            const SizedBox(height: 8),
+                            Text(
+                              _errorMessage!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.red[700],
+                                height: 1.4,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _fetchProductData,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text('Go Back'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                )
+                ),
+              )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -353,14 +362,14 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20,
+                      ),
                       decoration: BoxDecoration(
                         color: primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: primaryColor,
-                          width: 2,
-                        ),
+                        border: Border.all(color: primaryColor, width: 2),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -372,7 +381,9 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            isInMode ? 'Adding Items to Inventory' : 'Removing Items from Inventory',
+                            isInMode
+                                ? 'Adding Items to Inventory'
+                                : 'Removing Items from Inventory',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -382,7 +393,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                         ],
                       ),
                     ),
-                    
+
                     // Product Information
                     if (_productData != null) ...[
                       Container(
@@ -431,36 +442,41 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                               style: GoogleFonts.poppins(fontSize: 14),
                             ),
                             const SizedBox(height: 4),
-                                                         Row(
-                               children: [
-                                 Text(
-                                   'Current Stock: ${_productData!['stocks'] ?? 0}',
-                                   style: GoogleFonts.poppins(
-                                     fontSize: 14,
-                                     fontWeight: FontWeight.w500,
-                                     color: (_productData!['stocks'] ?? 0) == 0 ? Colors.red : primaryColor,
-                                   ),
-                                 ),
-                                 if ((_productData!['stocks'] ?? 0) == 0) ...[
-                                   const SizedBox(width: 8),
-                                   Container(
-                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                     decoration: BoxDecoration(
-                                       color: Colors.red,
-                                       borderRadius: BorderRadius.circular(12),
-                                     ),
-                                     child: Text(
-                                       'OUT OF STOCK',
-                                       style: GoogleFonts.poppins(
-                                         fontSize: 10,
-                                         fontWeight: FontWeight.bold,
-                                         color: Colors.white,
-                                       ),
-                                     ),
-                                   ),
-                                 ],
-                               ],
-                             ),
+                            Row(
+                              children: [
+                                Text(
+                                  'Current Stock: ${_productData!['stocks'] ?? 0}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: (_productData!['stocks'] ?? 0) == 0
+                                        ? Colors.red
+                                        : primaryColor,
+                                  ),
+                                ),
+                                if ((_productData!['stocks'] ?? 0) == 0) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'OUT OF STOCK',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                             if (_productData!['description'] != null) ...[
                               const SizedBox(height: 4),
                               Text(
@@ -473,7 +489,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                       ),
                       const SizedBox(height: 20),
                     ],
-                    
+
                     // Barcode Display
                     Container(
                       width: double.infinity,
@@ -528,7 +544,9 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
                             ),
                             child: Text(
                               widget.barcode,
@@ -542,11 +560,12 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Warning for zero stock in remove mode
-                    if (!widget.isInItemMode && (_productData?['stocks'] ?? 0) == 0) ...[
+                    if (!widget.isInItemMode &&
+                        (_productData?['stocks'] ?? 0) == 0) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
@@ -578,7 +597,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                       ),
                       const SizedBox(height: 20),
                     ],
-                    
+
                     // Quantity Section
                     Text(
                       'Quantity:',
@@ -589,7 +608,7 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Quantity Input with +/- buttons
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -611,24 +630,32 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                             width: 55,
                             height: 55,
                             decoration: BoxDecoration(
-                              color: _quantity > 1 ? Colors.red[50] : Colors.grey[100],
+                              color: _quantity > 1
+                                  ? Colors.red[50]
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(15),
                               border: Border.all(
-                                color: _quantity > 1 ? Colors.red[200]! : Colors.grey[300]!,
+                                color: _quantity > 1
+                                    ? Colors.red[200]!
+                                    : Colors.grey[300]!,
                               ),
                             ),
                             child: IconButton(
-                              onPressed: _quantity > 1 ? _decrementQuantity : null,
+                              onPressed: _quantity > 1
+                                  ? _decrementQuantity
+                                  : null,
                               icon: Icon(
                                 Icons.remove,
-                                color: _quantity > 1 ? Colors.red[700] : Colors.grey[500],
+                                color: _quantity > 1
+                                    ? Colors.red[700]
+                                    : Colors.grey[500],
                                 size: 24,
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(width: 20),
-                          
+
                           // Quantity text field
                           Expanded(
                             child: TextField(
@@ -647,11 +674,16 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(color: primaryColor, width: 2),
+                                  borderSide: BorderSide(
+                                    color: primaryColor,
+                                    width: 2,
+                                  ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
@@ -664,9 +696,9 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                               ],
                             ),
                           ),
-                          
+
                           const SizedBox(width: 20),
-                          
+
                           // Increment button
                           Container(
                             width: 55,
@@ -694,9 +726,9 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Save Button
                     Container(
                       width: double.infinity,
@@ -712,24 +744,32 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                         ],
                       ),
                       child: ElevatedButton.icon(
-                        onPressed: _isLoading || (!widget.isInItemMode && (_productData?['stocks'] ?? 0) == 0) ? null : _saveItem,
-                        icon: _isLoading 
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        onPressed:
+                            _isLoading ||
+                                (!widget.isInItemMode &&
+                                    (_productData?['stocks'] ?? 0) == 0)
+                            ? null
+                            : _saveItem,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                isInMode ? Icons.add : Icons.remove,
+                                size: 24,
                               ),
-                            )
-                          : Icon(
-                              isInMode ? Icons.add : Icons.remove,
-                              size: 24,
-                            ),
                         label: Text(
-                          _isLoading 
-                            ? 'Processing...'
-                            : (!widget.isInItemMode && (_productData?['stocks'] ?? 0) == 0)
+                          _isLoading
+                              ? 'Processing...'
+                              : (!widget.isInItemMode &&
+                                    (_productData?['stocks'] ?? 0) == 0)
                               ? 'Out of Stock'
                               : (isInMode ? 'Stock In' : 'Stock Out'),
                           style: GoogleFonts.poppins(
@@ -747,15 +787,17 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Cancel Button
                     SizedBox(
                       width: double.infinity,
                       height: 55,
                       child: OutlinedButton(
-                        onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: Colors.grey),
                           backgroundColor: Colors.grey[100],
@@ -779,4 +821,4 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
       ),
     );
   }
-} 
+}
