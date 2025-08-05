@@ -36,6 +36,8 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Update form data when product changes
   useEffect(() => {
@@ -52,10 +54,65 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     console.log('📝 Edit form field changed:', e.target.name, '=', e.target.value);
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    // Brand validation
+    if (!formData.brand.trim()) {
+      errors.brand = 'Brand name is required';
+    } else if (formData.brand.trim().length < 2) {
+      errors.brand = 'Brand name must be at least 2 characters long';
+    } else if (formData.brand.trim().length > 50) {
+      errors.brand = 'Brand name must be less than 50 characters';
+    }
+    
+    // Barcode validation
+    if (!formData.barcode) {
+      errors.barcode = 'Barcode is required';
+    } else if (isNaN(Number(formData.barcode))) {
+      errors.barcode = 'Barcode must be a valid number';
+    } else if (Number(formData.barcode) <= 0) {
+      errors.barcode = 'Barcode must be a positive number';
+    }
+    
+    // Category validation
+    if (!formData.category) {
+      errors.category = 'Category is required';
+    }
+    
+    // Stocks validation
+    if (!formData.stocks) {
+      errors.stocks = 'Stock quantity is required';
+    } else if (isNaN(Number(formData.stocks))) {
+      errors.stocks = 'Stock quantity must be a valid number';
+    } else if (Number(formData.stocks) < 0) {
+      errors.stocks = 'Stock quantity cannot be negative';
+    } else if (Number(formData.stocks) > 999999) {
+      errors.stocks = 'Stock quantity cannot exceed 999,999';
+    }
+    
+    // Description validation (optional but if provided, validate length)
+    if (formData.description && formData.description.trim().length > 500) {
+      errors.description = 'Description must be less than 500 characters';
+    }
+    
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,8 +131,24 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
       return;
     }
     
+    // Validate form before submission
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      console.log('❌ Validation errors:', errors);
+      return;
+    }
+    
+    // Show confirmation dialog instead of submitting immediately
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    console.log('✅ User confirmed edit submission, proceeding...');
+    setShowConfirmation(false);
     setLoading(true);
     setError('');
+    setValidationErrors({});
 
     // Prepare the request payload
     const payload = {
@@ -87,7 +160,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
     };
 
     console.log('📦 Edit request payload:', payload);
-    console.log('🌐 API endpoint: http://localhost:4000/api/products/update/' + product._id);
+    console.log('🌐 API endpoint: http://localhost:4000/api/products/update/' + product!._id);
 
     try {
       console.log('📡 Making edit API request...');
@@ -97,7 +170,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
         body: JSON.stringify(payload)
       });
 
-      const response = await fetch(`http://localhost:4000/api/products/update/${product._id}`, {
+      const response = await fetch(`http://localhost:4000/api/products/update/${product!._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +229,18 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
   const handleClose = () => {
     console.log('🚪 Closing edit modal, resetting form...');
     setError('');
+    setValidationErrors({});
+    setShowConfirmation(false);
     onClose();
+  };
+
+  // Check if form is valid for enabling submit button
+  const isFormValid = () => {
+    return formData.brand.trim() && 
+           formData.barcode && 
+           formData.category && 
+           formData.stocks && 
+           Object.keys(validationErrors).length === 0;
   };
 
   if (!isOpen || !product) return null;
@@ -170,8 +254,59 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
   });
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {showConfirmation ? (
+        // Confirmation Dialog
+        <div className="p-6 border w-96 shadow-lg rounded-md bg-white">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Product Changes</h3>
+            
+            <div className="text-left space-y-3 mb-6">
+              <div>
+                <span className="font-medium text-gray-700">Brand:</span>
+                <span className="ml-2 text-gray-900">{formData.brand}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Barcode:</span>
+                <span className="ml-2 text-gray-900">{formData.barcode}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Category:</span>
+                <span className="ml-2 text-gray-900 capitalize">{formData.category}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Stocks:</span>
+                <span className="ml-2 text-gray-900">{formData.stocks}</span>
+              </div>
+              {formData.description && (
+                <div>
+                  <span className="font-medium text-gray-700">Description:</span>
+                  <span className="ml-2 text-gray-900">{formData.description}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-center space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmation(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Back to Edit
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Confirm & Update
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Main Form
+        <div className="p-5 border w-96 shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Edit Product</h3>
@@ -200,9 +335,14 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 value={formData.brand}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  validationErrors.brand ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter brand name"
               />
+              {validationErrors.brand && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.brand}</p>
+              )}
             </div>
 
             <div>
@@ -216,10 +356,15 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 onChange={handleInputChange}
                 required
                 readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                className={`w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed ${
+                  validationErrors.barcode ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Barcode cannot be edited"
               />
               <p className="text-xs text-gray-500 mt-1">Barcode cannot be modified</p>
+              {validationErrors.barcode && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.barcode}</p>
+              )}
             </div>
 
             <div>
@@ -231,7 +376,9 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 value={formData.category}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  validationErrors.category ? 'border-red-500' : 'border-gray-300'
+                }`}
               >
                 <option value="">Select category</option>
                 <option value="bearing">Bearing</option>
@@ -241,6 +388,9 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 <option value="home">Home & Garden</option>
                 <option value="sports">Sports</option>
               </select>
+              {validationErrors.category && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.category}</p>
+              )}
             </div>
 
             <div>
@@ -254,9 +404,15 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 onChange={handleInputChange}
                 required
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                max="999999"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  validationErrors.stocks ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter stock quantity"
               />
+              {validationErrors.stocks && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.stocks}</p>
+              )}
             </div>
 
             <div>
@@ -268,9 +424,20 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                maxLength={500}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  validationErrors.description ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter product description"
               />
+              <div className="flex justify-between items-center mt-1">
+                {validationErrors.description && (
+                  <p className="text-red-500 text-xs">{validationErrors.description}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">
+                  {formData.description.length}/500 characters
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">
@@ -283,7 +450,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isFormValid()}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Updating...' : 'Update Product'}
@@ -292,6 +459,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
           </form>
         </div>
       </div>
+      )}
     </div>
   );
 }

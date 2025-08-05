@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import JsBarcode from 'jsbarcode';
 import AddProductModal from './modal/AddproductModal';
 import EditProductModal from './modal/EditProductModal';
 import DeleteProductModal from './modal/DeleteProductModal';
@@ -29,10 +28,82 @@ export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState('');
+  const [barcodeImages, setBarcodeImages] = useState<{[key: string]: string}>({});
 
   // Generate random barcode
   const generateBarcode = () => {
     return Date.now(); // Returns timestamp as barcode number
+  };
+
+  // Generate barcode image from backend
+  const generateBarcodeImage = async (barcodeNumber: number) => {
+    try {
+      console.log('🎨 Generating barcode for:', barcodeNumber);
+      const response = await fetch('http://localhost:4000/api/products/generate-barcode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ number: barcodeNumber.toString() }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Barcode generated successfully:', result);
+      
+      // Add a small delay to ensure the file is fully written
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Return the path to the generated barcode image
+      return `http://localhost:4000/barcodes/${barcodeNumber}.png`;
+    } catch (error) {
+      console.error('❌ Error generating barcode:', error);
+      return null;
+    }
+  };
+
+  // Generate barcodes for all products
+  const generateAllBarcodes = async () => {
+    console.log('🎨 Starting barcode generation for', products.length, 'products');
+    
+    const newBarcodeImages: {[key: string]: string} = {};
+    
+    for (const product of products) {
+      // Skip if barcode already exists
+      if (barcodeImages[product._id]) {
+        newBarcodeImages[product._id] = barcodeImages[product._id];
+        continue;
+      }
+      
+      const barcodeImageUrl = await generateBarcodeImage(product.barcode);
+      if (barcodeImageUrl) {
+        newBarcodeImages[product._id] = barcodeImageUrl;
+      }
+    }
+    
+    setBarcodeImages(newBarcodeImages);
+    console.log('🎨 Barcode generation completed');
+  };
+
+  // Generate barcode for a single product
+  const generateSingleBarcode = async (product: Product, retryCount = 0) => {
+    console.log('🎨 Generating barcode for single product:', product.brand, `(attempt ${retryCount + 1})`);
+    const barcodeImageUrl = await generateBarcodeImage(product.barcode);
+    if (barcodeImageUrl) {
+      setBarcodeImages(prev => ({
+        ...prev,
+        [product._id]: barcodeImageUrl
+      }));
+      console.log('✅ Barcode generated successfully for:', product.brand);
+    } else if (retryCount < 2) {
+      console.log('🔄 Retrying barcode generation for:', product.brand);
+      setTimeout(() => generateSingleBarcode(product, retryCount + 1), 1000);
+    } else {
+      console.error('❌ Failed to generate barcode after 3 attempts for:', product.brand);
+    }
   };
 
   // Fetch products from API
@@ -63,111 +134,21 @@ export default function Products() {
     fetchProducts();
   }, []);
 
-  // Generate barcodes for products dynamically
-  const generateBarcodes = () => {
-    console.log('🎨 Starting barcode generation for', products.length, 'products');
-    
-    products.forEach((product, index) => {
-      const barcodeId = `barcode-${product._id}`;
-      const headerId = `header-barcode`;
-
-      const barcodeEl = document.getElementById(barcodeId);
-      const headerEl = product._id === products[0]?._id ? document.getElementById(headerId) : null;
-
-      console.log(`📊 Generating barcode ${index + 1}/${products.length}:`, {
-        productId: product._id,
-        barcodeValue: product.barcode,
-        barcodeElement: barcodeEl ? 'Found' : 'Not found',
-        headerElement: headerEl ? 'Found' : 'Not found'
-      });
-
-      if (barcodeEl) {
-        try {
-          // Create canvas for barcode image
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = 200;
-          canvas.height = 60;
-          
-          // Generate barcode on canvas
-          JsBarcode(canvas, product.barcode.toString(), {
-            format: 'CODE128',
-            width: 2,
-            height: 50,
-            displayValue: true,
-            fontSize: 12,
-            margin: 5
-          });
-          
-          // Convert canvas to image
-          const img = document.createElement('img');
-          img.src = canvas.toDataURL();
-          img.alt = `Barcode: ${product.barcode}`;
-          img.className = 'max-w-full h-auto';
-          
-          // Clear existing content and add image
-          barcodeEl.innerHTML = '';
-          barcodeEl.appendChild(img);
-          
-          console.log(`✅ Barcode generated successfully for product ${product._id}`);
-        } catch (error) {
-          console.error('❌ Error generating barcode for product:', product.barcode, error);
-        }
-      } else {
-        console.warn(`⚠️ Barcode element not found for product ${product._id}`);
-      }
-
-      if (headerEl) {
-        try {
-          // Create canvas for header barcode image
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = 250;
-          canvas.height = 80;
-          
-          // Generate barcode on canvas
-          JsBarcode(canvas, product.barcode.toString(), {
-            format: 'CODE128',
-            width: 2,
-            height: 70,
-            displayValue: true,
-            fontSize: 14,
-            margin: 8
-          });
-          
-          // Convert canvas to image
-          const img = document.createElement('img');
-          img.src = canvas.toDataURL();
-          img.alt = `Header Barcode: ${product.barcode}`;
-          img.className = 'max-w-full h-auto';
-          
-          // Clear existing content and add image
-          headerEl.innerHTML = '';
-          headerEl.appendChild(img);
-          
-          console.log(`✅ Header barcode generated successfully`);
-        } catch (error) {
-          console.error('❌ Error generating header barcode:', error);
-        }
-      }
-    });
-    
-    console.log('🎨 Barcode generation completed');
-  };
-
   // Generate barcodes whenever products change
   useEffect(() => {
     if (products.length > 0) {
-      // Small delay to ensure DOM elements are rendered
-      setTimeout(() => {
-        generateBarcodes();
-      }, 100);
+      generateAllBarcodes();
     }
   }, [products]);
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.barcode.toString().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      product.brand.toLowerCase().includes(searchLower) ||
+      product.barcode.toString().includes(searchLower) ||
+      product.description.toLowerCase().includes(searchLower) ||
+      product.category.toLowerCase().includes(searchLower) ||
+      product.stocks.toString().includes(searchLower);
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -192,16 +173,27 @@ export default function Products() {
     }
   };
 
-  const handleProductAdded = () => {
-    fetchProducts(); // Refresh the products list
+  const handleProductAdded = async (newProduct?: Product) => {
+    console.log('🔄 Product added, refreshing products list...');
+    await fetchProducts(); // Refresh the products list
+    
+    // If we have the new product data, generate its barcode immediately
+    if (newProduct) {
+      console.log('🎨 Generating barcode for new product:', newProduct);
+      await generateSingleBarcode(newProduct);
+    } else {
+      console.log('⚠️ No new product data provided, will generate barcodes for all products');
+      // Generate barcodes for all products if no specific product data
+      await generateAllBarcodes();
+    }
   };
 
-  const handleProductUpdated = () => {
-    fetchProducts(); // Refresh the products list
+  const handleProductUpdated = async () => {
+    await fetchProducts(); // Refresh the products list
   };
 
-  const handleProductDeleted = () => {
-    fetchProducts(); // Refresh the products list
+  const handleProductDeleted = async () => {
+    await fetchProducts(); // Refresh the products list
   };
 
   const handleOpenAddModal = () => {
@@ -216,6 +208,249 @@ export default function Products() {
   const handleOpenDeleteModal = (product: Product) => {
     setSelectedProduct(product);
     setShowDeleteModal(true);
+  };
+
+  // Print barcode label
+  const handlePrintBarcode = (product: Product) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print barcode labels');
+      return;
+    }
+
+    const barcodeImageUrl = barcodeImages[product._id];
+    if (!barcodeImageUrl) {
+      alert('Barcode image not available. Please wait for it to load.');
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Barcode Label - ${product.brand}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .barcode-label {
+              width: 300px;
+              border: 2px solid #000;
+              padding: 15px;
+              margin: 10px;
+              text-align: center;
+              page-break-inside: avoid;
+            }
+            .product-info {
+              margin-bottom: 10px;
+            }
+            .brand {
+              font-size: 16px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .description {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 5px;
+            }
+            .category {
+              font-size: 11px;
+              color: #888;
+              margin-bottom: 10px;
+            }
+            .barcode-image {
+              max-width: 100%;
+              height: auto;
+              margin: 10px 0;
+            }
+            .barcode-number {
+              font-size: 12px;
+              font-family: monospace;
+              margin-top: 5px;
+            }
+            .stock-info {
+              font-size: 11px;
+              color: #666;
+              margin-top: 5px;
+            }
+            @media print {
+              body { margin: 0; }
+              .barcode-label { 
+                border: 1px solid #000; 
+                margin: 5px;
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="barcode-label">
+            <div class="product-info">
+              <div class="brand">${product.brand}</div>
+              <div class="description">${product.description}</div>
+              <div class="category">${product.category}</div>
+            </div>
+            <img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />
+            <div class="barcode-number">${product.barcode}</div>
+            <div class="stock-info">Stock: ${product.stocks} units</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for images to load before printing
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    };
+  };
+
+  // Bulk print all barcode labels
+  const handleBulkPrintBarcodes = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print barcode labels');
+      return;
+    }
+
+    // Check if all barcodes are loaded
+    const productsWithoutBarcodes = products.filter(product => !barcodeImages[product._id]);
+    if (productsWithoutBarcodes.length > 0) {
+      alert(`Barcode images not available for ${productsWithoutBarcodes.length} products. Please wait for them to load.`);
+      return;
+    }
+
+    const labelsHtml = products.map(product => {
+      const barcodeImageUrl = barcodeImages[product._id];
+      return `
+        <div class="barcode-label">
+          <div class="product-info">
+            <div class="brand">${product.brand}</div>
+            <div class="description">${product.description}</div>
+            <div class="category">${product.category}</div>
+          </div>
+          <img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />
+          <div class="barcode-number">${product.barcode}</div>
+          <div class="stock-info">Stock: ${product.stocks} units</div>
+        </div>
+      `;
+    }).join('');
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Bulk Barcode Labels - ${products.length} Products</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .barcode-label {
+              width: 300px;
+              border: 2px solid #000;
+              padding: 15px;
+              margin: 10px;
+              text-align: center;
+              page-break-inside: avoid;
+              display: inline-block;
+              vertical-align: top;
+            }
+            .product-info {
+              margin-bottom: 10px;
+            }
+            .brand {
+              font-size: 16px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .description {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 5px;
+            }
+            .category {
+              font-size: 11px;
+              color: #888;
+              margin-bottom: 10px;
+            }
+            .barcode-image {
+              max-width: 100%;
+              height: auto;
+              margin: 10px 0;
+            }
+            .barcode-number {
+              font-size: 12px;
+              font-family: monospace;
+              margin-top: 5px;
+            }
+            .stock-info {
+              font-size: 11px;
+              color: #666;
+              margin-top: 5px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 20px;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 18px;
+              color: #333;
+            }
+            .header p {
+              margin: 5px 0 0 0;
+              font-size: 14px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+              .barcode-label { 
+                border: 1px solid #000; 
+                margin: 5px;
+                page-break-inside: avoid;
+              }
+              .header {
+                background: none;
+                border: 1px solid #ddd;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Inventory Barcode Labels</h1>
+            <p>Total Products: ${products.length} | Generated: ${new Date().toLocaleString()}</p>
+          </div>
+          ${labelsHtml}
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for images to load before printing
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 1000);
+    };
   };
 
   if (loading) {
@@ -235,18 +470,22 @@ export default function Products() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Products</h1>
               <p className="text-gray-600 mt-1">Manage your inventory products</p>
-              {products.length > 0 && (
-                <div className="mt-4">
-                  <svg id="header-barcode"></svg>
-                </div>
-              )}
             </div>
-            <button
-              onClick={handleOpenAddModal}
-              className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              + Add Product
-            </button>
+            <div className="mt-4 sm:mt-0 flex gap-2">
+              <button
+                onClick={handleOpenAddModal}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                + Add Product
+              </button>
+              <button
+                onClick={handleBulkPrintBarcodes}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                title="Print all barcode labels"
+              >
+                🖨️ Bulk Print
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -268,7 +507,7 @@ export default function Products() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Search Products</label>
               <input
                 type="text"
-                placeholder="Search by brand or barcode..."
+                placeholder="Search by brand, barcode, description, category, or stocks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
@@ -298,7 +537,8 @@ export default function Products() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Barcode</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Brand</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stocks</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Barcode Number</th>
@@ -310,7 +550,23 @@ export default function Products() {
                 {filteredProducts.map(product => (
                   <tr key={product._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <svg id={`barcode-${product._id}`}></svg>
+                      {barcodeImages[product._id] ? (
+                        <img 
+                          src={barcodeImages[product._id]} 
+                          alt={`Barcode: ${product.barcode}`} 
+                          className="max-w-full h-auto" 
+                          onError={(e) => {
+                            console.error('❌ Failed to load barcode image for product:', product._id);
+                            e.currentTarget.style.display = 'none';
+                            // Try to regenerate the barcode
+                            generateSingleBarcode(product);
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-12 w-32 bg-gray-100 rounded">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div 
@@ -322,8 +578,8 @@ export default function Products() {
                       >
                         {product.brand}
                       </div>
-                      <div className="text-sm text-gray-500">{product.description}</div>
                     </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{product.description}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.category}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.stocks}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.barcode}</td>
@@ -335,6 +591,13 @@ export default function Products() {
                           className="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handlePrintBarcode(product)}
+                          className="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          title="Print Barcode Label"
+                        >
+                          🖨️
                         </button>
                         <button
                           onClick={() => handleOpenDeleteModal(product)}
