@@ -9,15 +9,6 @@ const addProduct = async (req, res) => {
   try {
     const newProduct = await Product.create(data);
 
-    // Create a transaction record for the new product
-    const transactionData = {
-      product: newProduct._id,
-      quantity: data.stocks || 0,
-      action: "Product Added"
-    };
-
-    await Transaction.create(transactionData);
-
     return res.status(200).json(newProduct);
   } catch (error) {
     return res
@@ -111,15 +102,6 @@ const updateProductByBarcode = async (req, res) => {
       updateData,
       { new: true }
     );
-
-    // Create a transaction record for the stock update
-    // const transactionData = {
-    //   product: product._id,
-    //   quantity: data.quantity || data.stocks,
-    //   action: "Stock In"
-    // };
-
-    // await Transaction.create(transactionData);
 
     console.log("Product updated successfully:", updatedProduct);
     return res.status(200).json({
