@@ -18,4 +18,7 @@ router.get("/history/:barcode", Controller.getProductHistory);
 // Generate barcode
 router.post("/generate-barcode", Controller.generateBarcode);
 
+// Hidden route for testing purposes
+router.delete("/delete/:id", Controller.deleteProduct);
+
 module.exports = router;
