@@ -4,7 +4,7 @@ const path = require("path");
 
 // routes imports
 const productsRoutes = require("./routes/productRoutes");
-const transactionRoutes = require("./routes/TransactionRoutes");
+const transactionRoutes = require("./routes/transactionRoutes");
 
 const app = express();
 

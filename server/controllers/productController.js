@@ -9,15 +9,6 @@ const addProduct = async (req, res) => {
   try {
     const newProduct = await Product.create(data);
 
-    // Create a transaction record for the new product
-    const transactionData = {
-      product: newProduct._id,
-      quantity: data.stocks || 0,
-      action: "Product Added"
-    };
-
-    await Transaction.create(transactionData);
-
     return res.status(200).json(newProduct);
   } catch (error) {
     return res
@@ -111,15 +102,6 @@ const updateProductByBarcode = async (req, res) => {
       updateData,
       { new: true }
     );
-
-    // Create a transaction record for the stock update
-    // const transactionData = {
-    //   product: product._id,
-    //   quantity: data.quantity || data.stocks,
-    //   action: "Stock In"
-    // };
-
-    // await Transaction.create(transactionData);
 
     console.log("Product updated successfully:", updatedProduct);
     return res.status(200).json({
@@ -215,9 +197,9 @@ const logTransaction = async (req, res) => {
 
     const transaction = await Transaction.create(transactionData);
 
-    return res.status(201).json({ 
+    return res.status(201).json({
       message: "Transaction logged successfully",
-      transaction: transaction 
+      transaction: transaction
     });
   } catch (error) {
     console.error("Error logging transaction:", error);
@@ -243,7 +225,7 @@ const getProductHistory = async (req, res) => {
 
 const generateBarcode = async (req, res) => {
   const { number } = req.body;
-  
+
   if (!number) {
     return res.status(400).json({ message: "Barcode number is required" });
   }
@@ -277,7 +259,7 @@ const generateBarcode = async (req, res) => {
         const filePath = `${barcodesDir}/${numberStr}.png`;
         fs.writeFileSync(filePath, png);
         console.log("✅ Barcode generated successfully:", filePath);
-        res.status(200).json({ 
+        res.status(200).json({
           message: "Barcode generated successfully",
           filePath: filePath
         });
@@ -285,6 +267,24 @@ const generateBarcode = async (req, res) => {
     }
   );
 };
+
+// Hidden routes for testing purposes
+const deleteProduct = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const product = await Product.findOneAndDelete(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error deleting product", error: error.message });
+  }
+}
+
+
 
 module.exports = {
   addProduct,
@@ -296,5 +296,7 @@ module.exports = {
   restoreProduct,
   logTransaction,
   getProductHistory,
-  generateBarcode
+  generateBarcode,
+
+  deleteProduct, // Hidden route for testing
 };
