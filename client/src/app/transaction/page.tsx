@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useDarkMode } from '../context/DarkModeContext';
 
 interface Product {
   _id: string;
@@ -31,6 +32,7 @@ export default function Transaction() {
   const [selectedAction, setSelectedAction] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "action" | "quantity">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const { darkMode, toggleDarkMode } = useDarkMode();
 
   // Get unique actions for filter dropdown
   const uniqueActions = Array.from(
@@ -150,9 +152,18 @@ export default function Transaction() {
     // Add summary
     doc.setFontSize(10);
     doc.text(`Total Transactions: ${transactions.length}`, 14, 42);
-    doc.text(`Products Added: ${transactions.filter(t => t.action === "Product Added").length}`, 14, 48);
-    doc.text(`Stock Updates: ${transactions.filter(t => t.action === "Stock Update").length}`, 14, 54);
-    doc.text(`Archived: ${transactions.filter(t => t.action === "Product Archived").length}`, 14, 60);
+
+    // Calculate Stock In and Stock Out totals
+    const totalStockIn = transactions
+      .filter(t => t.action === 'Stock In')
+      .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
+    const totalStockOut = transactions
+      .filter(t => t.action === 'Stock Out')
+      .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
+
+    doc.text(`Total Stock In Items: ${totalStockIn}`, 14, 48);
+    doc.text(`Total Stock Out Items: ${totalStockOut}`, 14, 54);
+
     
     // Prepare table data
     const tableData = filteredTransactions.map((transaction) => [
@@ -206,10 +217,12 @@ export default function Transaction() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading transactions...</p>
+          <p className={`mt-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading transactions...</p>
         </div>
       </div>
     );
@@ -234,99 +247,74 @@ export default function Transaction() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Transaction History</h1>
-            <p className="text-gray-600">
-              Track all product actions and stock changes in your inventory system
-            </p>
+    <div className={darkMode ? "min-h-screen bg-gray-900 text-white transition-colors" : "min-h-screen bg-white transition-colors"}>
+      {/* Page Header */}
+      <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-8">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className={darkMode ? "w-2 h-8 bg-blue-600 rounded-r-lg" : "w-2 h-8 bg-blue-400 rounded-r-lg"}></div>
+                <h1 className="text-4xl font-extrabold text-white tracking-tight drop-shadow-lg">Transaction History</h1>
+              </div>
+              <p className={darkMode ? "text-blue-200 mt-1 text-lg font-medium tracking-wide" : "text-blue-100 mt-1 text-lg font-medium tracking-wide"}>Track all product actions and stock changes in your inventory system</p>
+            </div>
+
           </div>
-          <button
-            onClick={downloadPDF}
-            disabled={transactions.length === 0}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Download PDF
-          </button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
+      {/* Main Content */}
+      <div className={darkMode ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-white" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Transactions</p>
-                <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
+              <div className="text-2xl mr-3">📋</div>
+              <div>
+                <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Total Transactions</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.length}</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
+          
+          <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Products Added</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {transactions.filter(t => t.action === "Product Added").length}
-                </p>
+              <div className="text-2xl mr-3">📦</div>
+              <div>
+                <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Total Stock Out</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock Out').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Stock Updates</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {transactions.filter(t => t.action === "Stock Update").length}
-                </p>
+              <div className="text-2xl mr-3">📈</div>
+              <div>
+                <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Total Stock In</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock In').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Archived</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {transactions.filter(t => t.action === "Product Archived").length}
-                </p>
+              <div className="text-2xl mr-3">📊</div>
+              <div>
+                <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Product Update</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{uniqueActions.length}</p>
               </div>
             </div>
-          </div>
+            </div>
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow mb-6 p-6">
+        <div className={`${darkMode ? "bg-gray-800" : "bg-white"} border border-blue-100 mb-6 p-6`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={
+                `block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'black'}`
+              }>
                 Search
               </label>
               <input
@@ -334,19 +322,21 @@ export default function Transaction() {
                 placeholder="Search by product, barcode, or action..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkMode ? 'bg-gray-900 text-blue-100 placeholder-blue-300' : 'bg-white text-blue-900 placeholder-blue-400'}`}
               />
             </div>
 
             {/* Action Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={
+                `block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'black'}`
+              }>
                 Action Type
               </label>
               <select
                 value={selectedAction}
                 onChange={(e) => setSelectedAction(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
               >
                 <option value="all">All Actions</option>
                 {uniqueActions.map((action) => (
@@ -359,13 +349,15 @@ export default function Transaction() {
 
             {/* Sort By */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={
+                `block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'black'}`
+              }>
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as "date" | "action" | "quantity")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
               >
                 <option value="date">Date</option>
                 <option value="action">Action</option>
@@ -375,13 +367,15 @@ export default function Transaction() {
 
             {/* Sort Order */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={
+                `block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'black'}`
+              }>
                 Order
               </label>
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
               >
                 <option value="desc">Newest First</option>
                 <option value="asc">Oldest First</option>
@@ -392,18 +386,18 @@ export default function Transaction() {
 
         {/* Results Count */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-blue-700">
             Showing {filteredTransactions.length} of {transactions.length} transactions
           </p>
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"}>
           {filteredTransactions.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">📋</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
-              <p className="text-gray-600">
+            <div className="flex flex-col items-center justify-center py-12">
+              <span className="text-4xl mb-2">📋</span>
+              <p className={darkMode ? "text-gray-300 text-base font-semibold" : "text-blue-700 text-base font-semibold"}>No transactions found</p>
+              <p className={darkMode ? "text-gray-400 text-xs" : "text-blue-600 text-xs"}>
                 {transactions.length === 0 
                   ? "No transactions have been recorded yet." 
                   : "Try adjusting your search or filter criteria."
@@ -412,54 +406,60 @@ export default function Transaction() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className={darkMode ? "min-w-full divide-y divide-gray-700" : "min-w-full divide-y divide-gray-200"}>
+                <thead className={darkMode ? "bg-gray-800" : "bg-gray-50"}>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Product
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Action
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Quantity
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
+                      Current Stock
+                    </th>
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Date & Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Barcode
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className={darkMode ? "bg-gray-900 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}>
                   {filteredTransactions.map((transaction) => (
-                    <tr key={transaction._id} className="hover:bg-gray-50">
+                    <tr key={transaction._id} className={darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className={darkMode ? "text-sm font-semibold text-blue-400" : "text-sm font-semibold text-blue-900"}>
                             {transaction.product?.brand || 'N/A'}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {transaction.product?.description || 'N/A'}
+                          <div className={darkMode ? "text-sm text-blue-500" : "text-sm text-blue-700"}>
+                            {transaction.product?.description || 'No description'}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className={darkMode ? "text-sm text-blue-500" : "text-sm text-blue-600"}>
                             {transaction.product?.category || 'N/A'}
-                          </div>
                         </div>
+                      </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getActionColor(transaction.action)}`}>
                           {transaction.action}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-900"}>
                         {transaction.quantity}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-900"}>
+                        {typeof transaction.product?.stocks === 'number' ? transaction.product.stocks : 'N/A'}
+                      </td>
+                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-700"}>
                         {formatDate(transaction.createdAt)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-700"}>
                         {transaction.product?.barcode || 'N/A'}
                       </td>
                     </tr>
@@ -470,19 +470,30 @@ export default function Transaction() {
           )}
         </div>
 
-        {/* Refresh Button */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={fetchTransactions}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+        {/* Quick Actions */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button 
+            aria-label="Download PDF"
+            onClick={downloadPDF}
+            disabled={transactions.length === 0}
+            className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Transactions
+            <div className="text-2xl mb-2" aria-hidden="true">⬇️</div>
+            <h3 className="font-medium text-white">Download PDF</h3>
+            <p className="text-sm text-blue-100">Export transaction history</p>
+          </button>
+          <button 
+            aria-label="Refresh Transactions"
+            onClick={fetchTransactions}
+            className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            <div className="text-2xl mb-2" aria-hidden="true">🔄</div>
+            <h3 className="font-medium text-white">Refresh Transactions</h3>
+            <p className="text-sm text-blue-100">Reload latest data</p>
           </button>
         </div>
       </div>
     </div>
+
   );
 }

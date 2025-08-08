@@ -118,23 +118,14 @@ const updateProductByBarcode = async (req, res) => {
 
 const archiveProduct = async (req, res) => {
   const { id } = req.params;
-  const { isDeleted } = req.body;
+  
   try {
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    await Product.findByIdAndUpdate(id, { isDeleted: isDeleted || true });
-
-    // Create a transaction record for archiving
-    const transactionData = {
-      product: product._id,
-      quantity: product.stocks,
-      action: "Product Archived"
-    };
-
-    await Transaction.create(transactionData);
+    await Product.findByIdAndUpdate(id, { isDeleted: true });
 
     return res.status(200).json({ message: "Product archived successfully" });
   } catch (error) {
