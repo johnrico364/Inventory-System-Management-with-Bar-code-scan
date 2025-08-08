@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import AddProductModal from './modal/AddproductModal';
 import EditProductModal from './modal/EditProductModal';
 import DeleteProductModal from './modal/DeleteProductModal';
+import { useDarkMode } from '../context/DarkModeContext';
 import ProductDetails from './Productdetails';
-
 interface Product {
   _id: string;
   brand: string;
@@ -18,6 +18,7 @@ interface Product {
 }
 
 export default function Products() {
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -455,21 +456,21 @@ export default function Products() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className={darkMode ? "min-h-screen flex items-center justify-center bg-gray-900" : "min-h-screen flex items-center justify-center bg-gray-50"}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={darkMode ? "min-h-screen bg-gray-900 text-white transition-colors" : "min-h-screen bg-white transition-colors"}>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-              <p className="text-gray-600 mt-1">Manage your inventory products</p>
+              <h1 className="text-3xl font-bold text-white">Products</h1>
+              <p className={darkMode ? "text-blue-200 mt-1" : "text-blue-100 mt-1"}>Manage your inventory products</p>
             </div>
             <div className="mt-4 sm:mt-0 flex gap-2">
               <button
@@ -501,10 +502,10 @@ export default function Products() {
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 mb-6" : "bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"}>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Products</label>
+              <label className={darkMode ? "block text-sm font-medium text-white mb-2" : "block text-sm font-medium text-gray-700 mb-2"}>Search Products</label>
               <input
                 type="text"
                 placeholder="Search by brand, barcode, description, category, or stocks..."
@@ -514,14 +515,14 @@ export default function Products() {
               />
             </div>
             <div className="md:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className={darkMode ? "block text-sm font-medium text-white mb-2":"block text-sm font-medium text-gray-700 mb-2"}>Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
               >
                 {categories.map(cat => (
-                  <option key={cat} value={cat}>
+                  <option key={cat} value={cat} className={darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}>
                     {cat === 'all' ? 'All Categories' : cat}
                   </option>
                 ))}
@@ -531,30 +532,29 @@ export default function Products() {
         </div>
 
         {/* Products Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"}>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className={darkMode ? "min-w-full divide-y divide-gray-700" : "min-w-full divide-y divide-gray-200"}>
+              <thead className={darkMode ? "bg-gray-800" : "bg-gray-50"}>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Barcode</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Brand</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stocks</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Barcode Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Barcode</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Brand</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Description</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Category</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Stocks</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300" : "px-6 py-3 text-left text-xs font-semibold text-blue-800"}>Barcode Number</th>
+                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300" : "px-6 py-3 text-left text-xs font-semibold text-blue-800"}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={darkMode ? "bg-gray-900 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}>
                 {filteredProducts.map(product => (
-                  <tr key={product._id} className="hover:bg-gray-50">
+                  <tr key={product._id} className={darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"}>
                     <td className="px-6 py-4">
                       {barcodeImages[product._id] ? (
                         <img 
                           src={barcodeImages[product._id]} 
                           alt={`Barcode: ${product.barcode}`} 
-                          className="max-w-full h-auto" 
+                          className="w-50 h-auto" // Reduced width to 24 (96px)
                           onError={(e) => {
                             console.error('❌ Failed to load barcode image for product:', product._id);
                             e.currentTarget.style.display = 'none';
@@ -563,14 +563,14 @@ export default function Products() {
                           }}
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-12 w-32 bg-gray-100 rounded">
+                        <div className={darkMode ? "flex items-center justify-center h-10 w-24 bg-gray-800 rounded" : "flex items-center justify-center h-10 w-24 bg-gray-100 rounded"}>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <div 
-                        className="text-sm font-medium text-blue-700 cursor-pointer hover:underline"
+                        className={darkMode ? "text-sm font-medium text-blue-400 cursor-pointer hover:underline" : "text-sm font-medium text-blue-700 cursor-pointer hover:underline"}
                         onClick={() => {
                           setSelectedProduct(product);
                           setShowDetails(true);
@@ -579,29 +579,37 @@ export default function Products() {
                         {product.brand}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.description}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.category}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.stocks}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.barcode}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{product.lastUpdated}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.description}</td>
+                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.category}</td>
+                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.stocks}</td>
+                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.barcode}</td>
+                    <td className="px-6 py-4 text-sm text-blue-800">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleOpenEditModal(product)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          className={darkMode 
+                            ? "text-blue-400 hover:text-blue-300 bg-blue-900/50 hover:bg-blue-800 px-2 py-1 rounded text-xs font-medium transition-colors" 
+                            : "text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          }
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handlePrintBarcode(product)}
-                          className="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          className={darkMode
+                            ? "text-green-400 hover:text-green-300 bg-green-900/50 hover:bg-green-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            : "text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          }
                           title="Print Barcode Label"
                         >
                           🖨️
                         </button>
                         <button
                           onClick={() => handleOpenDeleteModal(product)}
-                          className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          className={darkMode
+                            ? "text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            : "text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                          }
                         >
                           Delete
                         </button>
@@ -614,7 +622,7 @@ export default function Products() {
           </div>
         </div>
 
-        <div className="mt-4 text-sm text-gray-600">
+        <div className={darkMode ? "mt-4 text-sm text-gray-400" : "mt-4 text-sm text-gray-600"}>
           Showing {filteredProducts.length} of {products.length} products
         </div>
       </div>

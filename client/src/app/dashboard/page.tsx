@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDarkMode } from '../context/DarkModeContext';
 
 interface Product {
   _id: string;
@@ -37,6 +38,9 @@ interface StockStatus {
 }
 
 export default function Dashboard() {
+  // Dark mode state with localStorage persistence
+  const { darkMode, toggleDarkMode } = useDarkMode();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [stats, setStats] = useState<InventoryStats>({
     totalProducts: 0,
@@ -123,34 +127,35 @@ export default function Dashboard() {
     color: string;
     subtitle?: string;
   }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
+    <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6 hover:shadow-2xl transition-transform duration-200 hover:scale-105 relative overflow-hidden">
+      <div className="absolute left-0 top-0 h-full w-1 bg-blue-400 rounded-r-lg"></div>
+      <div className="flex items-center justify-between relative z-10">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1 flex items-center gap-2"><span className='w-2 h-2 bg-blue-400 rounded-full inline-block'></span>{title}</p>
+          <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{value}</p>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-xs text-blue-100 mt-1 font-medium">{subtitle}</p>
           )}
           {trend && trendValue && (
             <div className="flex items-center mt-2">
               {trend === 'up' ? (
-                <span className="text-green-500">↗</span>
+                <span className="text-green-300 animate-bounce">↗</span>
               ) : trend === 'down' ? (
-                <span className="text-red-500">↘</span>
+                <span className="text-red-300 animate-bounce">↘</span>
               ) : (
-                <span className="text-gray-500">→</span>
+                <span className="text-blue-200">→</span>
               )}
-              <span className={`text-sm ml-1 ${
-                trend === 'up' ? 'text-green-600' : 
-                trend === 'down' ? 'text-red-600' : 'text-gray-600'
-              }`}>
+              <span className={`text-xs ml-1 ${
+                trend === 'up' ? 'text-green-200' : 
+                trend === 'down' ? 'text-red-200' : 'text-blue-200'
+              } font-semibold`}>
                 {trendValue}
               </span>
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${color} text-white text-2xl`}>
-          {icon}
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-200/30 shadow-inner">
+          <span className="text-3xl text-blue-100 drop-shadow-lg">{icon}</span>
         </div>
       </div>
     </div>
@@ -167,27 +172,31 @@ export default function Dashboard() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-red-500'];
+    const colors = ['bg-blue-800', 'bg-blue-600', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Categories</h3>
+      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+        <div className="flex items-center mb-4">
+          <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+          <span className="text-blue-700 text-xl mr-2">🏷️</span>
+          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Top Categories</h3>
+        </div>
         <div className="space-y-3">
           {categoryData.map((category, index) => (
-            <div key={category.name} className="flex items-center justify-between">
+            <div key={category.name} className="flex items-center justify-between group">
               <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]} mr-3`}></div>
-                <span className="text-gray-700 font-medium">{category.name}</span>
+                <div className={`w-4 h-4 rounded-full ${colors[index % colors.length]} mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform`}></div>
+                <span className="text-blue-900 font-semibold text-base group-hover:text-blue-800 transition-colors">{category.name}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-gray-600">{category.count} items</span>
-                <span className="text-sm text-gray-500">({category.percentage}%)</span>
+                <span className="text-blue-800 font-semibold">{category.count} items</span>
+                <span className="text-xs text-blue-400 font-medium">({category.percentage}%)</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex justify-between text-sm text-gray-600">
+        <div className="mt-4 pt-4 border-t border-blue-100">
+          <div className="flex justify-between text-xs text-blue-700 font-semibold tracking-wide">
             <span>Total Categories: {Object.keys(categories).length}</span>
             <span>Total Products: {total}</span>
           </div>
@@ -205,53 +214,57 @@ export default function Dashboard() {
     const getPercentage = (count: number) => Math.round((count / total) * 100);
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Stock Status Overview</h3>
+      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+        <div className="flex items-center mb-4">
+          <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+          <span className="text-blue-700 text-xl mr-2">📊</span>
+          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Stock Status Overview</h3>
+        </div>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <span className="text-gray-700">In Stock</span>
+              <div className="w-4 h-4 bg-green-500 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
+              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">In Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-green-600">{inStock}</span>
-              <span className="text-sm text-gray-500">({getPercentage(inStock)}%)</span>
+              <span className="font-semibold text-green-700">{inStock}</span>
+              <span className="text-xs text-blue-400 font-medium">({getPercentage(inStock)}%)</span>
             </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-              <span className="text-gray-700">Low Stock</span>
+              <div className="w-4 h-4 bg-orange-400 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
+              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">Low Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-orange-600">{lowStock}</span>
-              <span className="text-sm text-gray-500">({getPercentage(lowStock)}%)</span>
+              <span className="font-semibold text-orange-600">{lowStock}</span>
+              <span className="text-xs text-blue-400 font-medium">({getPercentage(lowStock)}%)</span>
             </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-              <span className="text-gray-700">Out of Stock</span>
+              <div className="w-4 h-4 bg-red-500 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
+              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">Out of Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-red-600">{outOfStock}</span>
-              <span className="text-sm text-gray-500">({getPercentage(outOfStock)}%)</span>
+              <span className="font-semibold text-red-600">{outOfStock}</span>
+              <span className="text-xs text-blue-400 font-medium">({getPercentage(outOfStock)}%)</span>
             </div>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="mt-4 pt-4 border-t border-blue-100">
+          <div className="w-full bg-blue-100 rounded-full h-2 flex overflow-hidden">
             <div 
-              className="bg-green-500 h-2 rounded-full" 
+              className="bg-green-500 h-2 rounded-l-full"
               style={{ width: `${getPercentage(inStock)}%` }}
             ></div>
             <div 
-              className="bg-orange-500 h-2 rounded-full -mt-2" 
-              style={{ width: `${getPercentage(lowStock)}%`, marginLeft: `${getPercentage(inStock)}%` }}
+              className="bg-orange-400 h-2"
+              style={{ width: `${getPercentage(lowStock)}%` }}
             ></div>
             <div 
-              className="bg-red-500 h-2 rounded-full -mt-2" 
-              style={{ width: `${getPercentage(outOfStock)}%`, marginLeft: `${getPercentage(inStock) + getPercentage(lowStock)}%` }}
+              className="bg-red-500 h-2 rounded-r-full"
+              style={{ width: `${getPercentage(outOfStock)}%` }}
             ></div>
           </div>
         </div>
@@ -271,24 +284,32 @@ export default function Dashboard() {
     };
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recently Added Products</h3>
+      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+        <div className="flex items-center mb-4">
+          <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+          <span className="text-blue-700 text-xl mr-2">🆕</span>
+          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Recently Added Products</h3>
+        </div>
         <div className="space-y-3">
           {products.map((product) => (
-            <div key={product._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+            <div key={product._id} className="flex items-center justify-between py-2 border-b border-blue-100 last:border-b-0 group">
               <div className="flex-1">
-                <p className="font-medium text-gray-900 text-sm">{product.brand}</p>
-                <p className="text-xs text-gray-600">{product.category} • {product.stocks} in stock</p>
+                <p className="font-semibold text-blue-900 text-sm group-hover:text-blue-800 transition-colors">{product.brand}</p>
+                <p className="text-xs text-blue-700">{product.category} • {product.stocks} in stock</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500">{formatDate(product.createdAt)}</p>
-                <p className="text-xs text-gray-400">#{product.barcode}</p>
+                <p className="text-xs text-blue-400 font-medium">{formatDate(product.createdAt)}</p>
+                <p className="text-xs text-black">#{product.barcode}</p>
               </div>
             </div>
           ))}
         </div>
         {products.length === 0 && (
-          <p className="text-gray-500 text-sm text-center py-4">No recent products</p>
+          <div className="flex flex-col items-center justify-center py-6">
+            <span className="text-4xl mb-2">📦</span>
+            <p className="text-blue-700 text-base font-semibold">No recent products</p>
+            <p className="text-blue-600 text-xs">Add new products to see them here!</p>
+          </div>
         )}
       </div>
     );
@@ -298,18 +319,22 @@ export default function Dashboard() {
     const lowStockProducts = products.filter(p => p.stocks > 0 && p.stocks <= 10).slice(0, 5);
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Low Stock Alerts</h3>
+      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+        <div className="flex items-center mb-4">
+          <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+          <span className="text-blue-700 text-xl mr-2">⚠️</span>
+          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Low Stock Alerts</h3>
+        </div>
         <div className="space-y-3">
           {lowStockProducts.map((product) => (
-            <div key={product._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+            <div key={product._id} className="flex items-center justify-between py-2 border-b border-blue-100 last:border-b-0 group">
               <div className="flex-1">
-                <p className="font-medium text-gray-900 text-sm">{product.brand}</p>
-                <p className="text-xs text-gray-600">{product.description}</p>
-                <p className="text-xs text-gray-500">{product.category}</p>
+                <p className="font-semibold text-blue-900 text-sm group-hover:text-blue-800 transition-colors">{product.brand}</p>
+                <p className="text-xs text-blue-700">{product.description}</p>
+                <p className="text-xs text-blue-400">{product.category}</p>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 shadow-sm">
                   {product.stocks} left
                 </span>
               </div>
@@ -317,7 +342,11 @@ export default function Dashboard() {
           ))}
         </div>
         {lowStockProducts.length === 0 && (
-          <p className="text-green-600 text-sm text-center py-4">✅ All products have sufficient stock</p>
+          <div className="flex flex-col items-center justify-center py-6">
+            <span className="text-4xl mb-2">✅</span>
+            <p className="text-green-700 text-base font-semibold">All products have sufficient stock</p>
+            <p className="text-green-600 text-xs">No low stock alerts at the moment.</p>
+          </div>
         )}
       </div>
     );
@@ -352,27 +381,48 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={darkMode ? "min-h-screen bg-gray-900 text-white transition-colors" : "min-h-screen bg-white transition-colors"}>
       {/* Page Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex justify-between items-center py-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">Real-time inventory overview</p>
+              <div className="flex items-center gap-3 mb-2">
+                <div className={darkMode ? "w-2 h-8 bg-blue-600 rounded-r-lg" : "w-2 h-8 bg-blue-400 rounded-r-lg"}></div>
+                <h1 className="text-4xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
+              </div>
+              <p className={darkMode ? "text-blue-200 mt-1 text-lg font-medium tracking-wide" : "text-blue-100 mt-1 text-lg font-medium tracking-wide"}>Real-time inventory overview</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Last updated</p>
-              <p className="text-sm font-medium text-gray-900">
-                {new Date().toLocaleString()}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className={darkMode ? "text-xs text-blue-300 uppercase tracking-widest" : "text-xs text-blue-200 uppercase tracking-widest"}>Last updated</p>
+                <p className="text-base font-semibold text-white drop-shadow">
+                  {new Date().toLocaleString()}
+                </p>
+              </div>
+              <button
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={toggleDarkMode}
+                className={
+                  "ml-4 p-2 rounded-full border-2 " +
+                  (darkMode ? "border-blue-400 bg-gray-800 hover:bg-gray-700" : "border-blue-800 bg-white hover:bg-blue-50") +
+                  " transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                }
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? (
+                  <span className="text-yellow-300 text-xl" aria-hidden="true">🌙</span>
+                ) : (
+                  <span className="text-blue-800 text-xl" aria-hidden="true">☀️</span>
+                )}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={darkMode ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-white" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
@@ -381,7 +431,7 @@ export default function Dashboard() {
             icon="📦"
             trend="up"
             trendValue="Live data"
-            color="bg-blue-500"
+            color="bg-blue-900"
             subtitle="Active inventory items"
           />
           <StatCard
@@ -390,7 +440,7 @@ export default function Dashboard() {
             icon="⚠️"
             trend={stats.lowStockItems > 0 ? "down" : "neutral"}
             trendValue={stats.lowStockItems > 0 ? "Needs attention" : "All good"}
-            color="bg-orange-500"
+            color="bg-blue-700"
             subtitle="≤ 10 units remaining"
           />
           <StatCard
@@ -399,7 +449,7 @@ export default function Dashboard() {
             icon="🚫"
             trend={stats.outOfStockItems > 0 ? "down" : "neutral"}
             trendValue={stats.outOfStockItems > 0 ? "Restock needed" : "Fully stocked"}
-            color="bg-red-500"
+            color="bg-blue-600"
             subtitle="0 units available"
           />
           <StatCard
@@ -408,7 +458,7 @@ export default function Dashboard() {
             icon="🏷️"
             trend="neutral"
             trendValue="Product types"
-            color="bg-purple-500"
+            color="bg-blue-500"
             subtitle="Different product categories"
           />
         </div>
@@ -431,31 +481,34 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-xl font-semibold text-blue-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
+              aria-label="View All Products"
               onClick={() => window.location.href = '/products'}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-left"
+              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              <div className="text-2xl mb-2">📋</div>
-              <h3 className="font-medium text-gray-900">View All Products</h3>
-              <p className="text-sm text-gray-600">Manage your inventory</p>
+              <div className="text-2xl mb-2" aria-hidden="true">📋</div>
+              <h3 className="font-medium text-white">View All Products</h3>
+              <p className="text-sm text-blue-100">Manage your inventory</p>
             </button>
             <button 
+              aria-label="Add New Product"
               onClick={() => window.location.href = '/products?add=true'}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-left"
+              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              <div className="text-2xl mb-2">➕</div>
-              <h3 className="font-medium text-gray-900">Add New Product</h3>
-              <p className="text-sm text-gray-600">Expand your inventory</p>
+              <div className="text-2xl mb-2" aria-hidden="true">➕</div>
+              <h3 className="font-medium text-white">Add New Product</h3>
+              <p className="text-sm text-blue-100">Expand your inventory</p>
             </button>
             <button 
+              aria-label="Low Stock Items"
               onClick={() => window.location.href = '/products?filter=low-stock'}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-left"
+              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              <div className="text-2xl mb-2">⚠️</div>
-              <h3 className="font-medium text-gray-900">Low Stock Items</h3>
-              <p className="text-sm text-gray-600">Review and restock</p>
+              <div className="text-2xl mb-2" aria-hidden="true">⚠️</div>
+              <h3 className="font-medium text-white">Low Stock Items</h3>
+              <p className="text-sm text-blue-100">Review and restock</p>
             </button>
           </div>
         </div>
