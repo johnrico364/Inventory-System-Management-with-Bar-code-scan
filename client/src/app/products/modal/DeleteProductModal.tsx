@@ -1,0 +1,266 @@
+"use client";
+
+import { useState } from "react";
+
+interface DeleteProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onProductDeleted: () => void;
+  product: {
+    _id: string;
+    brand: string;
+    barcode: number;
+    description: string;
+    category: string;
+    stocks: number;
+    status: "in-stock" | "low-stock" | "out-of-stock";
+    lastUpdated: string;
+  } | null;
+}
+
+export default function DeleteProductModal({
+  isOpen,
+  onClose,
+  onProductDeleted,
+  product,
+}: DeleteProductModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const handleDelete = async () => {
+    console.log("🚀 Starting soft delete process...");
+    console.log("📋 Product to archive:", product);
+
+    if (!product) {
+      setError("No product selected for archiving.");
+      return;
+    }
+
+    if (!product._id) {
+      setError("Product ID is missing. Cannot archive product.");
+      return;
+    }
+
+    // Show confirmation dialog instead of deleting immediately
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!product || !product._id) {
+      setError("Invalid product data. Please try again.");
+      setShowConfirmation(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:4000/api/products/archive/${product._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(response);
+      
+      setShowConfirmation(false);
+      onProductDeleted();
+      onClose();
+    } catch (err) {
+      console.log( err);
+      
+      setShowConfirmation(true); // Keep the confirmation dialog open on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    console.log("🚪 Closing delete modal...");
+    setError("");
+    setShowConfirmation(false);
+    onClose();
+  };
+
+  if (!isOpen || !product) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {showConfirmation ? (
+        // Final Confirmation Dialog
+        <div className="p-6 border w-96 shadow-lg rounded-md bg-white">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg
+                className="h-6 w-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Final Confirmation
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you absolutely sure you want to archive this product? This
+              action cannot be undone immediately.
+            </p>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <h4 className="text-sm font-medium text-red-900 mb-2">
+                Product to Archive:
+              </h4>
+              <div className="text-sm text-red-800 space-y-1">
+                <p>
+                  <span className="font-medium">Brand:</span> {product!.brand}
+                </p>
+                <p>
+                  <span className="font-medium">Barcode:</span>{" "}
+                  {product!.barcode}
+                </p>
+                <p>
+                  <span className="font-medium">Category:</span>{" "}
+                  {product!.category}
+                </p>
+                <p>
+                  <span className="font-medium">Stocks:</span> {product!.stocks}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmation(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Yes, Archive Product
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Main Delete Dialog
+        <div className="p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="mt-3">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Archive Product
+              </h3>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-yellow-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Are you sure you want to archive this product?
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        This product will be moved to the archived section. You
+                        can restore it later from the archived products page.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  Product Details:
+                </h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>
+                    <span className="font-medium">Brand:</span> {product.brand}
+                  </p>
+                  <p>
+                    <span className="font-medium">Barcode:</span>{" "}
+                    {product.barcode}
+                  </p>
+                  <p>
+                    <span className="font-medium">Category:</span>{" "}
+                    {product.category}
+                  </p>
+                  <p>
+                    <span className="font-medium">Stocks:</span>{" "}
+                    {product.stocks}
+                  </p>
+                  <p>
+                    <span className="font-medium">Description:</span>{" "}
+                    {product.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Archiving..." : "Archive Product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
