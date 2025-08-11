@@ -1,19 +1,57 @@
 const Product = require("../models/productsSchema");
 const Transaction = require("../models/transactionSchema");
-const bwipjs = require("bwip-js");
+const bwipjs = require('bwip-js');
 const fs = require("fs");
 
 const addProduct = async (req, res) => {
   const data = req.body;
 
   try {
-    const newProduct = await Product.create(data);
+    // Check if a product with the same description already exists
+    if (data.description) {
+      const existingProduct = await Product.findOne({
+        description: { 
+          $regex: new RegExp(`^${data.description}$`, 'i') // Case-insensitive exact match
+        }
+      });
+      
+      if (existingProduct) {
+        return res.status(400).json({ 
+          message: "A product with this description already exists" 
+        });
+      }
+    }
 
+    const newProduct = await Product.create(data);
     return res.status(200).json(newProduct);
   } catch (error) {
     return res
       .status(500)
       .json({ message: "Error adding product", error: error.message });
+  }
+};
+
+// New function to check description uniqueness
+const checkDescription = async (req, res) => {
+  const { description } = req.query;
+
+  if (!description) {
+    return res.status(400).json({ message: "Description is required" });
+  }
+
+  try {
+    const existingProduct = await Product.findOne({ 
+      description: { 
+        $regex: new RegExp(`^${description}$`, 'i') // Case-insensitive exact match
+      } 
+    });
+    
+    return res.status(200).json({ exists: !!existingProduct });
+  } catch (error) {
+    return res.status(500).json({ 
+      message: "Error checking description", 
+      error: error.message 
+    });
   }
 };
 
@@ -49,7 +87,20 @@ const updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true });
+    // Check if a product with the same description already exists
+    if (data?.description) {
+      const existingProduct = await Product.findOne({
+        description: { 
+          $regex: new RegExp(`^${data.description}$`, 'i') // Case-insensitive exact match
+        }
+      });
+      
+      if (existingProduct) {
+        return res.status(400).json({ 
+          message: "A product with this description already exists" 
+        });
+      }
+    }
 
     // Create a transaction record for the product update
     const transactionData = {
@@ -57,8 +108,10 @@ const updateProduct = async (req, res) => {
       quantity: data.stocks || data.quantity || 0,
       action: "Product Update"
     };
-
     await Transaction.create(transactionData);
+
+    // Update the product
+    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true });
 
     return res.status(200).json({ message: "Product updated successfully" });
   } catch (error) {
@@ -280,6 +333,7 @@ const deleteProduct = async (req, res) => {
 module.exports = {
   addProduct,
   getProducts,
+  checkDescription,
   getArchivedProducts,
   updateProduct,
   updateProductByBarcode,

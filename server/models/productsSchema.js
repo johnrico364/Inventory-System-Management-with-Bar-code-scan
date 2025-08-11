@@ -6,7 +6,7 @@ const productSchema = new Schema(
     brand: { type: String, required: true },
     barcode: { type: Number, required: true, unique: true },
     description: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: String, required: true, unique: true },
     stocks: { type: Number, required: true },
     isDeleted: { type: Boolean, required: true, default: false },
   },

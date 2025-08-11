@@ -8,7 +8,7 @@ const transactionSchema = new Schema(
     action: {
       type: String, 
       required: true,
-      enum: ['Stock In', 'Stock Out', 'Product Update']
+      enum: ['Stock In', 'Stock Out','Product Update']
     },
   },
   {
