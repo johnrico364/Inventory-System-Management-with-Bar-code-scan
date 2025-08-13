@@ -28,6 +28,7 @@ export default function TransactionTable() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAction, setSelectedAction] = useState<string>("all");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Get unique actions for filter dropdown
   const uniqueActions = Array.from(
@@ -122,6 +123,21 @@ export default function TransactionTable() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    try {
+      const response = await axios.delete('http://localhost:4000/api/transactions/delete-all');
+      if (response.status === 200) {
+        setShowDeleteConfirm(false);
+        await fetchTransactions();
+      } else {
+        throw new Error('Failed to delete all transactions');
+      }
+    } catch (error) {
+      setError('Failed to delete all transactions');
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -141,6 +157,43 @@ export default function TransactionTable() {
   return (
     <div className="bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Delete All Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete All</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Are you sure you want to delete all transactions? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAll}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  Delete All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete All Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+            disabled={transactions.length === 0}
+          >
+            Delete All Transactions
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-lg shadow mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

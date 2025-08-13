@@ -38,8 +38,8 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/dashboard" className="flex items-center">
-              <span className="text-2xl mr-2">🏪</span>
-              <span className={darkMode ? "text-xl font-bold text-white" : "text-xl font-bold text-gray-900"}>Inventory System</span>
+              <span className="text-2xl mr-2">🏭</span>
+              <span className={darkMode ? "text-xl font-bold text-white" : "text-xl font-bold text-gray-900"}>MOM TRADING AND SERVICES </span>
             </Link>
           </div>
           

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import * as XLSX from 'xlsx';
 import { useDarkMode } from '../context/DarkModeContext';
 
 interface Product {
@@ -34,9 +33,9 @@ export default function Transaction() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { darkMode, toggleDarkMode } = useDarkMode();
 
-  // Get unique actions for filter dropdown
+  // Get unique actions for filter dropdown, excluding "Product Update"
   const uniqueActions = Array.from(
-    new Set(transactions.map((t) => t.action))
+    new Set(transactions.filter(t => t.action !== "Product Update").map((t) => t.action))
   ).sort();
 
   useEffect(() => {
@@ -78,7 +77,8 @@ export default function Transaction() {
   };
 
   const filterAndSortTransactions = () => {
-    let filtered = transactions;
+    // First filter out Product Update actions
+    let filtered = transactions.filter(t => t.action !== "Product Update");
 
     // Filter by search term
     if (searchTerm) {
@@ -123,8 +123,8 @@ export default function Transaction() {
         return "bg-green-100 text-green-800 border-green-200";
       case "Stock In":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Product Update":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Stock Out":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       case "Product Archived":
         return "bg-red-100 text-red-800 border-red-200";
       case "Product Restored":
@@ -138,22 +138,8 @@ export default function Transaction() {
     return new Date(dateString).toLocaleString();
   };
 
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-    
-    // Add title
-    doc.setFontSize(20);
-    doc.text("Transaction History Report", 14, 22);
-    
-    // Add subtitle with date
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 32);
-    
-    // Add summary
-    doc.setFontSize(10);
-    doc.text(`Total Transactions: ${transactions.length}`, 14, 42);
-
-    // Calculate Stock In and Stock Out totals
+  const downloadExcel = () => {
+    // Calculate summary data
     const totalStockIn = transactions
       .filter(t => t.action === 'Stock In')
       .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
@@ -161,58 +147,81 @@ export default function Transaction() {
       .filter(t => t.action === 'Stock Out')
       .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
 
-    doc.text(`Total Stock In Items: ${totalStockIn}`, 14, 48);
-    doc.text(`Total Stock Out Items: ${totalStockOut}`, 14, 54);
+    // Prepare worksheet data with summary at the top
+    const worksheetData = [
+      ['Transaction History Report'],
+      ['Generated on:', new Date().toLocaleString()],
+      ['Total Transactions:', transactions.length],
+      ['Total Stock In:', totalStockIn],
+      ['Total Stock Out:', totalStockOut],
+      [''], // Empty row for spacing
+      // Headers for transaction data
+      ['Product', 'Description', 'Category', 'Action', 'Quantity', 'Current Stock', 'Date & Time', 'Barcode'],
+      // Transaction data
+      ...filteredTransactions.map((transaction) => [
+        transaction.product?.brand || 'N/A',
+        transaction.product?.description || 'N/A',
+        transaction.product?.category || 'N/A',
+        transaction.action || 'N/A',
+        transaction.quantity || 0,
+        transaction.product?.stocks || 'N/A',
+        formatDate(transaction.createdAt),
+        transaction.product?.barcode?.toString() || 'N/A'
+      ])
+    ];
 
-    
-    // Prepare table data
-    const tableData = filteredTransactions.map((transaction) => [
-      transaction.product?.brand || 'N/A',
-      transaction.product?.description || 'N/A',
-      transaction.action || 'N/A',
-      transaction.quantity?.toString() || '0',
-      formatDate(transaction.createdAt),
-      transaction.product?.barcode?.toString() || 'N/A'
-    ]);
-    
-    // Add table
-    autoTable(doc, {
-      head: [['Product', 'Description', 'Action', 'Quantity', 'Date & Time', 'Barcode']],
-      body: tableData,
-      startY: 70,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      headStyles: {
-        fillColor: [59, 130, 246], // Blue color
-        textColor: 255,
-        fontStyle: 'bold',
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252], // Light gray
-      },
-      columnStyles: {
-        0: { cellWidth: 30 }, // Product
-        1: { cellWidth: 40 }, // Description
-        2: { cellWidth: 25 }, // Action
-        3: { cellWidth: 15 }, // Quantity
-        4: { cellWidth: 35 }, // Date
-        5: { cellWidth: 25 }, // Barcode
-      },
-      margin: { top: 70 },
-    });
-    
-    // Add footer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.text(`Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+    // Create workbook with single worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 }, // Product
+      { wch: 30 }, // Description
+      { wch: 15 }, // Category
+      { wch: 15 }, // Action
+      { wch: 10 }, // Quantity
+      { wch: 15 }, // Current Stock
+      { wch: 20 }, // Date & Time
+      { wch: 15 }, // Barcode
+    ];
+
+    // Style the headers (row 7, index 6)
+    const headerStyle = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "3B82F6" }, type: 'pattern', patternType: 'solid' },
+      alignment: { horizontal: 'center' }
+    };
+
+    // Style the summary section
+    const summaryStyle = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "EFF6FF" }, type: 'pattern', patternType: 'solid' }
+    };
+
+    // Apply styles to the summary section (first 5 rows)
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 2; j++) {
+        const cell = XLSX.utils.encode_cell({ r: i, c: j });
+        if (!ws[cell]) continue;
+        ws[cell].s = summaryStyle;
+      }
     }
-    
-    // Download the PDF
-    doc.save(`transaction-history-${new Date().toISOString().split('T')[0]}.pdf`);
+
+    // Apply styles to transaction headers
+    const headerRow = 6; // 7th row (0-based)
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_cell({ r: headerRow, c: C });
+      if (!ws[address]) continue;
+      ws[address].s = headerStyle;
+    }
+
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Transaction History');
+
+    // Save the file
+    XLSX.writeFile(wb, `transaction-history-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (loading) {
@@ -267,7 +276,7 @@ export default function Transaction() {
       {/* Main Content */}
       <div className={darkMode ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-white" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
               <div className="text-2xl mr-3">📋</div>
@@ -296,15 +305,6 @@ export default function Transaction() {
               </div>
             </div>
           </div>
-          <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
-            <div className="flex items-center">
-              <div className="text-2xl mr-3">📊</div>
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Product Update</p>
-                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{uniqueActions.length}</p>
-              </div>
-            </div>
-            </div>
         </div>
 
         {/* Filters and Search */}
@@ -473,13 +473,13 @@ export default function Transaction() {
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           <button 
-            aria-label="Download PDF"
-            onClick={downloadPDF}
+            aria-label="Download Excel"
+            onClick={downloadExcel}
             disabled={transactions.length === 0}
             className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="text-2xl mb-2" aria-hidden="true">⬇️</div>
-            <h3 className="font-medium text-white">Download PDF</h3>
+            <div className="text-2xl mb-2" aria-hidden="true">📊</div>
+            <h3 className="font-medium text-white">Download Excel</h3>
             <p className="text-sm text-blue-100">Export transaction history</p>
           </button>
           <button 

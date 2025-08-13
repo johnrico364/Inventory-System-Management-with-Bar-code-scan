@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const { darkMode } = useDarkMode();
 
   // Generate random barcode
   const generateBarcode = () => {
@@ -36,14 +38,14 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
     return barcode;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     console.log('📝 Form field changed:', e.target.name, '=', e.target.value);
     const { name, value } = e.target;
     
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
     
     // Clear validation error for this field when user starts typing
     if (validationErrors[name]) {
@@ -52,9 +54,34 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
         [name]: ''
       }));
     }
+
+    // If description is being changed, validate it immediately
+    if (name === 'description' && value.trim()) {
+      try {
+        const response = await fetch(`http://localhost:4000/api/products/check-description?description=${encodeURIComponent(value.trim())}`);
+        if (!response.ok) {
+          throw new Error('Failed to check description uniqueness');
+        }
+        const data = await response.json();
+        if (data.exists) {
+          setValidationErrors(prev => ({
+            ...prev,
+            description: 'A product with this description already exists'
+          }));
+        } else {
+          setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.description;
+            return newErrors;
+          });
+        }
+      } catch (err) {
+        console.error('Error checking description uniqueness:', err);
+      }
+    }
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const errors: {[key: string]: string} = {};
     
     // Brand validation
@@ -64,6 +91,23 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
       errors.brand = 'Brand name must be at least 2 characters long';
     } else if (formData.brand.trim().length > 50) {
       errors.brand = 'Brand name must be less than 50 characters';
+    }
+    
+    // Check for unique description if one is provided
+    if (formData.description.trim()) {
+      try {
+        const response = await fetch(`http://localhost:4000/api/products/check-description?description=${encodeURIComponent(formData.description.trim())}`);
+        if (!response.ok) {
+          throw new Error('Failed to check description uniqueness');
+        }
+        const data = await response.json();
+        if (data.exists) {
+          errors.description = 'A product with this description already exists';
+        }
+      } catch (err) {
+        console.error('Error checking description uniqueness:', err);
+        errors.description = 'Failed to verify description uniqueness';
+      }
     }
     
     // Barcode validation
@@ -104,16 +148,21 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
     console.log('🚀 Starting form submission...');
     console.log('📋 Current form data:', formData);
     
-    // Validate form before submission
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      console.log('❌ Validation errors:', errors);
-      return;
+    try {
+      // Validate form before submission
+      const errors = await validateForm();
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        console.log('❌ Validation errors:', errors);
+        return;
+      }
+      
+      // Show confirmation dialog instead of submitting immediately
+      setShowConfirmation(true);
+    } catch (err) {
+      console.error('Error during form validation:', err);
+      setError('An error occurred while validating the form');
     }
-    
-    // Show confirmation dialog instead of submitting immediately
-    setShowConfirmation(true);
   };
 
   const handleConfirmSubmit = async () => {
@@ -240,11 +289,17 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
 
   // Check if form is valid for enabling submit button
   const isFormValid = () => {
-    return formData.brand.trim() && 
-           formData.barcode && 
-           formData.category && 
-           formData.stocks && 
-           Object.keys(validationErrors).length === 0;
+    const hasRequiredFields = formData.brand.trim() && 
+                            formData.barcode && 
+                            formData.category && 
+                            formData.stocks;
+                            
+    const hasNoErrors = Object.keys(validationErrors).length === 0;
+
+    // If description is provided, make sure it's not a duplicate
+    const isDescriptionValid = !formData.description.trim() || !validationErrors.description;
+
+    return hasRequiredFields && hasNoErrors && isDescriptionValid;
   };
 
   if (!isOpen) return null;
@@ -260,31 +315,31 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {showConfirmation ? (
         // Confirmation Dialog
-        <div className="p-6 border w-96 shadow-lg rounded-md bg-white">
+        <div className={`p-6 border w-96 shadow-lg rounded-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Product Details</h3>
+            <h3 className={`text-lg font-medium mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Confirm Product Details</h3>
             
             <div className="text-left space-y-3 mb-6">
               <div>
-                <span className="font-medium text-gray-700">Brand:</span>
-                <span className="ml-2 text-gray-900">{formData.brand}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Brand:</span>
+                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.brand}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Barcode:</span>
-                <span className="ml-2 text-gray-900">{formData.barcode}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Barcode:</span>
+                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.barcode}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Category:</span>
-                <span className="ml-2 text-gray-900 capitalize">{formData.category}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Category:</span>
+                <span className={`ml-2 capitalize ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.category}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Stocks:</span>
-                <span className="ml-2 text-gray-900">{formData.stocks}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Stocks:</span>
+                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.stocks}</span>
               </div>
               {formData.description && (
                 <div>
-                  <span className="font-medium text-gray-700">Description:</span>
-                  <span className="ml-2 text-gray-900">{formData.description}</span>
+                  <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Description:</span>
+                  <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.description}</span>
                 </div>
               )}
             </div>
@@ -309,13 +364,13 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
         </div>
       ) : (
         // Main Form
-        <div className="p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className={`p-5 border w-96 shadow-lg rounded-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="mt-3">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Add New Product</h3>
+            <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>Add New Product</h3>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600"
+              className={`${darkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
             >
               ✕
             </button>
@@ -329,7 +384,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Brand *
               </label>
               <input
@@ -339,8 +394,8 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
                 onChange={handleInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  validationErrors.brand ? 'border-red-500' : 'border-gray-300'
-                }`}
+                  validationErrors.brand ? 'border-red-500' : darkMode ? 'border-gray-600' : 'border-gray-300'
+                } ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-gray-900 placeholder-gray-500'}`}
                 placeholder="Enter brand name"
               />
               {validationErrors.brand && (
@@ -349,7 +404,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Barcode *
               </label>
               <div className="flex gap-2">
@@ -388,7 +443,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Category *
               </label>
               <select
@@ -397,8 +452,8 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
                 onChange={handleInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  validationErrors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
+                  validationErrors.category ? 'border-red-500' : darkMode ? 'border-gray-600' : 'border-gray-300'
+                } ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'}`}
               >
                 <option value="">Select category</option>
                 <option value="bearing">Bearing</option>
@@ -414,7 +469,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Stocks *
               </label>
               <input
@@ -436,7 +491,7 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Description
               </label>
               <textarea

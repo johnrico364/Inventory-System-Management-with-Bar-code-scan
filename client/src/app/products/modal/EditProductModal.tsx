@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface FormData {
 }
 
 export default function EditProductModal({ isOpen, onClose, onProductUpdated, product }: EditProductModalProps) {
+  const { darkMode } = useDarkMode();
   const [formData, setFormData] = useState<FormData>({
     brand: '',
     barcode: '',
@@ -150,14 +152,24 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
     setError('');
     setValidationErrors({});
 
+    // Calculate the previous stock value
+    const previousStocks = product!.stocks;
+    const newStocks = parseInt(formData.stocks);
+    
     // Prepare the request payload
     const payload = {
       brand: formData.brand,
       barcode: parseInt(formData.barcode),
       description: formData.description,
       category: formData.category,
-      stocks: parseInt(formData.stocks)
+      stocks: newStocks,
+      action: newStocks > previousStocks ? 'Stock In' : newStocks < previousStocks ? 'Stock Out' : undefined
     };
+
+    // Remove action if stocks haven't changed
+    if (newStocks === previousStocks) {
+      delete payload.action;
+    }
 
     console.log('📦 Edit request payload:', payload);
     console.log('🌐 API endpoint: http://localhost:4000/api/products/update/' + product!._id);
@@ -252,36 +264,36 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
     isOpen,
     product
   });
-
+  
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {showConfirmation ? (
         // Confirmation Dialog
-        <div className="p-6 border w-96 shadow-lg rounded-md bg-white">
+        <div className={`p-6 border w-96 shadow-lg rounded-md ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
           <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Product Changes</h3>
+            <h3 className={`text-lg font-medium mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Confirm Product Changes</h3>
             
             <div className="text-left space-y-3 mb-6">
               <div>
-                <span className="font-medium text-gray-700">Brand:</span>
-                <span className="ml-2 text-gray-900">{formData.brand}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Brand:</span>
+                <span className={`ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{formData.brand}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Barcode:</span>
-                <span className="ml-2 text-gray-900">{formData.barcode}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Barcode:</span>
+                <span className={`ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{formData.barcode}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Category:</span>
-                <span className="ml-2 text-gray-900 capitalize">{formData.category}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Category:</span>
+                <span className={`ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'} capitalize`}>{formData.category}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Stocks:</span>
-                <span className="ml-2 text-gray-900">{formData.stocks}</span>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Stocks:</span>
+                <span className={`ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{formData.stocks}</span>
               </div>
               {formData.description && (
                 <div>
-                  <span className="font-medium text-gray-700">Description:</span>
-                  <span className="ml-2 text-gray-900">{formData.description}</span>
+                  <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Description:</span>
+                  <span className={`ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{formData.description}</span>
                 </div>
               )}
             </div>
@@ -306,13 +318,13 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
         </div>
       ) : (
         // Main Form
-        <div className="p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className={`p-5 border w-96 shadow-lg rounded-md ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
         <div className="mt-3">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Edit Product</h3>
+            <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>Edit Product</h3>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600"
+              className={`${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
             >
               ✕
             </button>
@@ -326,7 +338,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Brand *
               </label>
               <input
@@ -336,8 +348,8 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 onChange={handleInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  validationErrors.brand ? 'border-red-500' : 'border-gray-300'
-                }`}
+                  validationErrors.brand ? 'border-red-500' : darkMode ? 'border-gray-600' : 'border-gray-300'
+                } ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-gray-900'}`}
                 placeholder="Enter brand name"
               />
               {validationErrors.brand && (
@@ -346,7 +358,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Barcode *
               </label>
               <input
@@ -368,7 +380,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Category *
               </label>
               <select
@@ -377,8 +389,8 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
                 onChange={handleInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  validationErrors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
+                  validationErrors.category ? 'border-red-500' : darkMode ? 'border-gray-600' : 'border-gray-300'
+                } ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'}`}
               >
                 <option value="">Select category</option>
                 <option value="bearing">Bearing</option>
@@ -394,7 +406,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                 Stocks *
               </label>
               <input
@@ -416,7 +428,7 @@ export default function EditProductModal({ isOpen, onClose, onProductUpdated, pr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white-700 mb-1">
                 Description
               </label>
               <textarea

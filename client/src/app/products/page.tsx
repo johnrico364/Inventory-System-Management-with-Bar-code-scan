@@ -26,6 +26,10 @@ export default function Products() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStockStatus, setSelectedStockStatus] = useState('all');
+  const [selectedBrand, setSelectedBrand] = useState('all');
+  const [sortBy, setSortBy] = useState('brand');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState('');
@@ -142,19 +146,47 @@ export default function Products() {
     }
   }, [products]);
 
-  const filteredProducts = products.filter(product => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      product.brand.toLowerCase().includes(searchLower) ||
-      product.barcode.toString().includes(searchLower) ||
-      product.description.toLowerCase().includes(searchLower) ||
-      product.category.toLowerCase().includes(searchLower) ||
-      product.stocks.toString().includes(searchLower);
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const getStockStatus = (stocks: number) => {
+    if (stocks === 0) return 'out-of-stock';
+    if (stocks <= 10) return 'low-stock';
+    return 'in-stock';
+  };
+
+  const filteredProducts = products
+    .filter(product => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        product.brand.toLowerCase().includes(searchLower) ||
+        product.barcode.toString().includes(searchLower) ||
+        product.description.toLowerCase().includes(searchLower) ||
+        product.category.toLowerCase().includes(searchLower) ||
+        product.stocks.toString().includes(searchLower);
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      const matchesStockStatus = selectedStockStatus === 'all' || getStockStatus(product.stocks) === selectedStockStatus;
+      const matchesBrand = selectedBrand === 'all' || product.brand === selectedBrand;
+      return matchesSearch && matchesCategory && matchesStockStatus && matchesBrand;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'brand':
+          comparison = a.brand.localeCompare(b.brand);
+          break;
+        case 'stocks':
+          comparison = a.stocks - b.stocks;
+          break;
+        case 'category':
+          comparison = a.category.localeCompare(b.category);
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
+  const brands = ['all', ...Array.from(new Set(products.map(p => p.brand)))];
+  const stockStatuses = ['all', 'in-stock', 'low-stock', 'out-of-stock'];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -502,28 +534,58 @@ export default function Products() {
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 mb-6" : "bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"}>
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4 mb-6" : "bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6"}>
+          <div className="flex items-center space-x-4">
             <div className="flex-1">
-              <label className={darkMode ? "block text-sm font-medium text-white mb-2" : "block text-sm font-medium text-gray-700 mb-2"}>Search Products</label>
               <input
                 type="text"
-                placeholder="Search by brand, barcode, description, category, or stocks..."
+                placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-white placeholder-gray-400' : 'bg-white text-gray-900 placeholder-gray-500'}`}
               />
             </div>
-            <div className="md:w-48">
-              <label className={darkMode ? "block text-sm font-medium text-white mb-2":"block text-sm font-medium text-gray-700 mb-2"}>Category</label>
+            
+            <div className="w-48">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
               >
-                {categories.map(cat => (
+                <option value="all">All Categories</option>
+                {categories.filter(cat => cat !== 'all').map(cat => (
                   <option key={cat} value={cat} className={darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}>
-                    {cat === 'all' ? 'All Categories' : cat}
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-48">
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
+              >
+                <option value="all">All Brands</option>
+                {brands.filter(brand => brand !== 'all').map(brand => (
+                  <option key={brand} value={brand} className={darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}>
+                    {brand}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-48">
+              <select
+                value={selectedStockStatus}
+                onChange={(e) => setSelectedStockStatus(e.target.value)}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
+              >
+                <option value="all">All Stock Status</option>
+                {stockStatuses.filter(status => status !== 'all').map(status => (
+                  <option key={status} value={status} className={darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}>
+                    {status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </option>
                 ))}
               </select>

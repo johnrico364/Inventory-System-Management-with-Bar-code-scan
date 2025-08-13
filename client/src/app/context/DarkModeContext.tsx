@@ -10,17 +10,20 @@ interface DarkModeContextType {
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
 
 export function DarkModeProvider({ children }: { children: React.ReactNode }) {
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('darkMode');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+  const [mounted, setMounted] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
+    setMounted(true);
+    const saved = localStorage.getItem('darkMode');
+    setDarkMode(saved ? JSON.parse(saved) : false);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    }
+  }, [darkMode, mounted]);
 
   const toggleDarkMode = () => {
     setDarkMode((prev: boolean) => !prev);

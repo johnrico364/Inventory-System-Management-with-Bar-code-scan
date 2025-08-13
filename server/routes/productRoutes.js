@@ -15,6 +15,9 @@ router.put("/update/:barcode", Controller.updateProductByBarcode);
 router.post("/transaction", Controller.logTransaction);
 router.get("/history/:barcode", Controller.getProductHistory);
 
+// Check for unique description
+router.get("/check-description", Controller.checkDescription);
+
 // Generate barcode
 router.post("/generate-barcode", Controller.generateBarcode);
 
