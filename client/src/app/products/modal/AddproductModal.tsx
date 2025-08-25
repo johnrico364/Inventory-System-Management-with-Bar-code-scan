@@ -11,6 +11,8 @@ interface AddProductModalProps {
 
 interface FormData {
   brand: string;
+  boxColor?: string;
+  boxNumber?: string;
   barcode: string;
   description: string;
   category: string;
@@ -20,6 +22,8 @@ interface FormData {
 export default function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductModalProps) {
   const [formData, setFormData] = useState<FormData>({
     brand: '',
+    boxColor: '',
+    boxNumber: '',
     barcode: '',
     description: '',
     category: '',
@@ -175,22 +179,15 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
     // Prepare the request payload
     const payload = {
       brand: formData.brand,
+      boxColor: formData.boxColor || '',
+      boxNumber: formData.boxNumber || '',
       barcode: parseInt(formData.barcode || generateBarcode().toString()),
       description: formData.description,
       category: formData.category,
       stocks: parseInt(formData.stocks)
     };
 
-    console.log('📦 Request payload:', payload);
-    console.log('🌐 API endpoint: http://localhost:4000/api/products/add');
-
     try {
-      console.log('📡 Making API request...');
-      console.log('📤 Request details:', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
 
       const response = await fetch('http://localhost:4000/api/products/add', {
         method: 'POST',
@@ -224,6 +221,8 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
       // Reset form
       setFormData({
         brand: '',
+        boxColor: '',
+        boxNumber: '',
         barcode: '',
         description: '',
         category: '',
@@ -261,6 +260,8 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
     console.log('🚪 Closing modal, resetting form...');
     setFormData({
       brand: '',
+      boxColor: '',
+      boxNumber: '',
       barcode: '',
       description: '',
       category: '',
@@ -324,6 +325,15 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
                 <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Brand:</span>
                 <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.brand}</span>
               </div>
+              <div>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Box color:</span>
+                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.boxColor}</span>
+              </div>
+              <div>
+                <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Box number: </span>
+                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.boxNumber}</span>
+              </div>
+
               <div>
                 <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Barcode:</span>
                 <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formData.barcode}</span>
@@ -401,6 +411,40 @@ export default function AddProductModal({ isOpen, onClose, onProductAdded }: Add
               {validationErrors.brand && (
                 <p className="text-red-500 text-xs mt-1">{validationErrors.brand}</p>
               )}
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Box Color
+              </label>
+              <select
+                name="boxColor"
+                value={formData.boxColor}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'
+                }`}
+              >
+                <option value="">Select box color</option>
+                <option value="Black">Black</option>
+                <option value="White">White</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Box Number
+              </label>
+              <input
+                type="text"
+                name="boxNumber"
+                value={formData.boxNumber}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  darkMode ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                }`}
+                placeholder="Enter box number"
+              />
             </div>
 
             <div>

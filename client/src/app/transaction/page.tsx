@@ -11,6 +11,8 @@ interface Product {
   barcode: number;
   category: string;
   stocks: number;
+  boxColor?: string;
+  boxNumber?: string;
 }
 
 interface Transaction {
@@ -50,13 +52,15 @@ export default function Transaction() {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
+      
+      console.log('Fetching transactions...');
       const response = await fetch("http://localhost:4000/api/transactions/get", {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
       });
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.message || `Server responded with status ${response.status}`);
@@ -66,7 +70,7 @@ export default function Transaction() {
       if (!Array.isArray(data)) {
         throw new Error('Invalid data format received from server');
       }
-      
+      console.log(data);
       setTransactions(data);
     } catch (err) {
       console.error('Transaction fetch error:', err);
@@ -156,7 +160,7 @@ export default function Transaction() {
       ['Total Stock Out:', totalStockOut],
       [''], // Empty row for spacing
       // Headers for transaction data
-      ['Product', 'Description', 'Category', 'Action', 'Quantity', 'Current Stock', 'Date & Time', 'Barcode'],
+      ['Product', 'Description', 'Category', 'Action', 'Quantity', 'Current Stock', 'Box Color', 'Box Number', 'Barcode', 'Date & Time'],
       // Transaction data
       ...filteredTransactions.map((transaction) => [
         transaction.product?.brand || 'N/A',
@@ -165,8 +169,10 @@ export default function Transaction() {
         transaction.action || 'N/A',
         transaction.quantity || 0,
         transaction.product?.stocks || 'N/A',
-        formatDate(transaction.createdAt),
-        transaction.product?.barcode?.toString() || 'N/A'
+        transaction.product?.boxColor || 'N/A',
+        transaction.product?.boxNumber || 'N/A',
+        transaction.product?.barcode?.toString() || 'N/A',
+        formatDate(transaction.createdAt)
       ])
     ];
 
@@ -182,8 +188,10 @@ export default function Transaction() {
       { wch: 15 }, // Action
       { wch: 10 }, // Quantity
       { wch: 15 }, // Current Stock
-      { wch: 20 }, // Date & Time
+      { wch: 15 }, // Box Color
+      { wch: 15 }, // Box Number
       { wch: 15 }, // Barcode
+      { wch: 20 }, // Date & Time
     ];
 
     // Style the headers (row 7, index 6)
@@ -422,28 +430,36 @@ export default function Transaction() {
                       Current Stock
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
-                      Date & Time
+                      Box Color
+                    </th>
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
+                      Box Number
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Barcode
+                    </th>
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
+                      Date & Time
                     </th>
                   </tr>
                 </thead>
                 <tbody className={darkMode ? "bg-gray-900 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}>
                   {filteredTransactions.map((transaction) => (
                     <tr key={transaction._id} className={darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className={darkMode ? "text-sm font-semibold text-blue-400" : "text-sm font-semibold text-blue-900"}>
-                            {transaction.product?.brand || 'N/A'}
+                      <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        <div className="flex items-center">
+                          <div>
+                            <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {transaction.product?.brand || 'N/A'}
+                            </div>
+                            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {transaction.product?.description || 'No description'}
+                            </div>
+                            <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              {transaction.product?.category || 'N/A'}
+                            </div>
                           </div>
-                          <div className={darkMode ? "text-sm text-blue-500" : "text-sm text-blue-700"}>
-                            {transaction.product?.description || 'No description'}
-                          </div>
-                          <div className={darkMode ? "text-sm text-blue-500" : "text-sm text-blue-600"}>
-                            {transaction.product?.category || 'N/A'}
                         </div>
-                      </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getActionColor(transaction.action)}`}>
@@ -453,14 +469,30 @@ export default function Transaction() {
                       <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-900"}>
                         {transaction.quantity}
                       </td>
-                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-900"}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         {typeof transaction.product?.stocks === 'number' ? transaction.product.stocks : 'N/A'}
                       </td>
-                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-700"}>
-                        {formatDate(transaction.createdAt)}
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        <span className="inline-flex items-center">
+                          {transaction.product?.boxColor ? (
+                            <>
+                              <div 
+                                className="w-4 h-4 rounded-full mr-2" 
+                                style={{ backgroundColor: transaction.product.boxColor }}
+                              />
+                              {transaction.product.boxColor}
+                            </>
+                          ) : 'N/A'}
+                        </span>
                       </td>
-                      <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-700"}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {transaction.product?.boxNumber || 'N/A'}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'} font-mono`}>
                         {transaction.product?.barcode || 'N/A'}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {formatDate(transaction.createdAt)}
                       </td>
                     </tr>
                   ))}

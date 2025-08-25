@@ -6,8 +6,10 @@ const productSchema = new Schema(
     brand: { type: String, required: true },
     barcode: { type: Number, required: true, unique: true },
     description: { type: String, required: true },
-    category: { type: String, required: true, unique: true },
+    category: { type: String, required: true },
     stocks: { type: Number, required: true },
+    boxColor: { type: String, required: true, enum: ["Black", "White"] },
+    boxNumber: { type: String, required: true },
     isDeleted: { type: Boolean, required: true, default: false },
   },
   {

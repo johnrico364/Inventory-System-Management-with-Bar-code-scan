@@ -7,14 +7,13 @@ const addProduct = async (req, res) => {
   const data = req.body;
 
   try {
-    // Check if a product with the same description already exists
+    // Only check for duplicate description, allow duplicate categories
     if (data.description) {
       const existingProduct = await Product.findOne({
         description: { 
           $regex: new RegExp(`^${data.description}$`, 'i') // Case-insensitive exact match
         }
       });
-      
       if (existingProduct) {
         return res.status(400).json({ 
           message: "A product with this description already exists" 
@@ -22,9 +21,11 @@ const addProduct = async (req, res) => {
       }
     }
 
+    console.log(data)
     const newProduct = await Product.create(data);
     return res.status(200).json(newProduct);
   } catch (error) {
+    console.log(error.message)
     return res
       .status(500)
       .json({ message: "Error adding product", error: error.message });
@@ -82,9 +83,53 @@ const updateProduct = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
   try {
+    console.log('Updating product:', { id, data }); // Debug log
+
     const product = await Product.findById(id);
     if (!product) {
+      console.log('Product not found:', id); // Debug log
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Handle stock updates
+    if (data.action === 'Stock in' || data.action === 'Stock out') {
+      console.log('Processing stock update:', { 
+        currentStock: product.stocks,
+        action: data.action,
+        quantity: data.quantity 
+      }); // Debug log
+
+      const quantity = parseInt(data.quantity);
+      const previousStock = product.stocks;
+      const newStocks = data.action === 'Stock in' 
+        ? previousStock + quantity
+        : previousStock - quantity;
+
+      if (newStocks < 0) {
+        console.log('Invalid stock update - would result in negative stock'); // Debug log
+        return res.status(400).json({ message: "Stock cannot be negative" });
+      }
+
+      // Update the product's stock
+      product.stocks = newStocks;
+      const updatedProduct = await product.save();
+      console.log('Product stock updated:', { 
+        previousStock,
+        newStocks,
+        productId: product._id 
+      }); // Debug log
+
+      // Create a transaction record
+      const transaction = await Transaction.create({
+        product: product._id,
+        action: data.action,
+        quantity: quantity,
+        previousStock: previousStock,
+        currentStock: newStocks
+      });
+      console.log('Transaction record created:', transaction); // Debug log
+
+      return res.status(200).json(updatedProduct);
     }
 
     // Check if a product with the same description already exists
