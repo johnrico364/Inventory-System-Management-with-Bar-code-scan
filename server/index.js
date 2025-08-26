@@ -22,11 +22,10 @@ app.use(express.json());
 // Serve static files from barcodes directory
 app.use('/barcodes', express.static(path.join(__dirname, 'barcodes')));
 
-const _dbURI =
-  "mongodb+srv://johnrico:John2004@projectsystems.cg2cala.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=ProjectSystems";
+const _dbURI = "mongodb://localhost:27017/inventory_system";
 
 mongoose.connect(_dbURI).then((result) => {
-  console.log("Connected to MongoDB");
+  console.log("Connected to Local MongoDB");
 });
 
 app.listen(4000, () => console.log("Listening on port 4000"));
