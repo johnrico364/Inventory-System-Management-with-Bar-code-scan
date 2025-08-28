@@ -559,11 +559,6 @@ export default function AddProductModal({
                 >
                   <option value="">Select category</option>
                   <option value="bearing">Bearing</option>
-                  <option value="electronics">Electronics</option>
-                  <option value="clothing">Clothing</option>
-                  <option value="books">Books</option>
-                  <option value="home">Home & Garden</option>
-                  <option value="sports">Sports</option>
                 </select>
                 {validationErrors.category && (
                   <p className="text-red-500 text-xs mt-1">
