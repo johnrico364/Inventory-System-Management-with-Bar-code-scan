@@ -1,6 +1,6 @@
 const Product = require("../models/productsSchema");
 const Transaction = require("../models/transactionSchema");
-const bwipjs = require('bwip-js');
+const bwipjs = require("bwip-js");
 const fs = require("fs");
 
 const addProduct = async (req, res) => {
@@ -10,22 +10,22 @@ const addProduct = async (req, res) => {
     // Only check for duplicate description, allow duplicate categories
     if (data.description) {
       const existingProduct = await Product.findOne({
-        description: { 
-          $regex: new RegExp(`^${data.description}$`, 'i') // Case-insensitive exact match
-        }
+        description: {
+          $regex: new RegExp(`^${data.description}$`, "i"), // Case-insensitive exact match
+        },
       });
       if (existingProduct) {
-        return res.status(400).json({ 
-          message: "A product with this description already exists" 
+        return res.status(400).json({
+          message: "A product with this description already exists",
         });
       }
     }
 
-    console.log(data)
+    console.log(data);
     const newProduct = await Product.create(data);
     return res.status(200).json(newProduct);
   } catch (error) {
-    console.log(error.message)
+    console.log(error.message);
     return res
       .status(500)
       .json({ message: "Error adding product", error: error.message });
@@ -41,24 +41,26 @@ const checkDescription = async (req, res) => {
   }
 
   try {
-    const existingProduct = await Product.findOne({ 
-      description: { 
-        $regex: new RegExp(`^${description}$`, 'i') // Case-insensitive exact match
-      } 
+    const existingProduct = await Product.findOne({
+      description: {
+        $regex: new RegExp(`^${description}$`, "i"), // Case-insensitive exact match
+      },
     });
-    
+
     return res.status(200).json({ exists: !!existingProduct });
   } catch (error) {
-    return res.status(500).json({ 
-      message: "Error checking description", 
-      error: error.message 
+    return res.status(500).json({
+      message: "Error checking description",
+      error: error.message,
     });
   }
 };
 
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find({ isDeleted: false });
+    const products = await Product.find({ isDeleted: false }).sort({
+      description: 1,
+    });
     return res.status(200).json(products);
   } catch (error) {
     return res
@@ -82,41 +84,43 @@ const getArchivedProducts = async (req, res) => {
 const updateProduct = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
+
   try {
-    console.log('Updating product:', { id, data }); // Debug log
+    console.log("Updating product:", { id, data }); // Debug log
 
     const product = await Product.findById(id);
     if (!product) {
-      console.log('Product not found:', id); // Debug log
+      console.log("Product not found:", id); // Debug log
       return res.status(404).json({ message: "Product not found" });
     }
 
     // Handle stock updates
-    if (data.action === 'Stock in' || data.action === 'Stock out') {
-      console.log('Processing stock update:', { 
+    if (data.action === "Stock in" || data.action === "Stock out") {
+      console.log("Processing stock update:", {
         currentStock: product.stocks,
         action: data.action,
-        quantity: data.quantity 
+        quantity: data.quantity,
       }); // Debug log
 
       const quantity = parseInt(data.quantity);
       const previousStock = product.stocks;
-      const newStocks = data.action === 'Stock in' 
-        ? previousStock + quantity
-        : previousStock - quantity;
+      const newStocks =
+        data.action === "Stock in"
+          ? previousStock + quantity
+          : previousStock - quantity;
 
       if (newStocks < 0) {
-        console.log('Invalid stock update - would result in negative stock'); // Debug log
+        console.log("Invalid stock update - would result in negative stock"); // Debug log
         return res.status(400).json({ message: "Stock cannot be negative" });
       }
 
       // Update the product's stock
       product.stocks = newStocks;
       const updatedProduct = await product.save();
-      console.log('Product stock updated:', { 
+      console.log("Product stock updated:", {
         previousStock,
         newStocks,
-        productId: product._id 
+        productId: product._id,
       }); // Debug log
 
       // Create a transaction record
@@ -125,40 +129,36 @@ const updateProduct = async (req, res) => {
         action: data.action,
         quantity: quantity,
         previousStock: previousStock,
-        currentStock: newStocks
+        currentStock: newStocks,
       });
-      console.log('Transaction record created:', transaction); // Debug log
+      console.log("Transaction record created:", transaction); // Debug log
 
       return res.status(200).json(updatedProduct);
     }
 
-    // Check if a product with the same description already exists
+    // Check if a product with the same description already exists (excluding current product)
     if (data?.description) {
       const existingProduct = await Product.findOne({
-        description: { 
-          $regex: new RegExp(`^${data.description}$`, 'i') // Case-insensitive exact match
-        }
+        _id: { $ne: id }, // Exclude the current product
+        description: {
+          $regex: new RegExp(`^${data.description}$`, "i"), // Case-insensitive exact match
+        },
       });
-      
+
       if (existingProduct) {
-        return res.status(400).json({ 
-          message: "A product with this description already exists" 
+        return res.status(400).json({
+          message: "A product with this description already exists",
         });
       }
     }
 
-    // Create a transaction record for the product update
-    const transactionData = {
-      product: product._id,
-      quantity: data.stocks || data.quantity || 0,
-      action: "Product Update"
-    };
-    await Transaction.create(transactionData);
+    if (data?.action === "Product update") {
+      // Update the product
+      const updatedProduct = await Product.findByIdAndUpdate(id, data);
+      return res.status(200).json({ message: "Product updated successfully" });
+    }
 
-    // Update the product
-    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true });
-
-    return res.status(200).json({ message: "Product updated successfully" });
+    
   } catch (error) {
     return res
       .status(500)
@@ -216,7 +216,7 @@ const updateProductByBarcode = async (req, res) => {
 
 const archiveProduct = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const product = await Product.findById(id);
     if (!product) {
@@ -247,7 +247,7 @@ const restoreProduct = async (req, res) => {
     const transactionData = {
       product: product._id,
       quantity: product.stocks,
-      action: "Product Restored"
+      action: "Product Restored",
     };
 
     await Transaction.create(transactionData);
@@ -279,16 +279,16 @@ const logTransaction = async (req, res) => {
     const transactionData = {
       product: product._id,
       quantity: quantity,
-      action: type === 'IN' ? 'Stock In' : 'Stock Out',
+      action: type === "IN" ? "Stock In" : "Stock Out",
       timestamp: timestamp || new Date(),
-      notes: notes
+      notes: notes,
     };
 
     const transaction = await Transaction.create(transactionData);
 
     return res.status(201).json({
       message: "Transaction logged successfully",
-      transaction: transaction
+      transaction: transaction,
     });
   } catch (error) {
     console.error("Error logging transaction:", error);
@@ -323,7 +323,7 @@ const generateBarcode = async (req, res) => {
   console.log("🎨 Generating barcode for:", numberStr);
 
   // Ensure barcodes directory exists
-  const barcodesDir = './barcodes';
+  const barcodesDir = "./barcodes";
   if (!fs.existsSync(barcodesDir)) {
     fs.mkdirSync(barcodesDir, { recursive: true });
   }
@@ -343,14 +343,16 @@ const generateBarcode = async (req, res) => {
     (err, png) => {
       if (err) {
         console.error("❌ Error generating barcode:", err);
-        res.status(500).json({ message: "Error generating barcode: " + err.message });
+        res
+          .status(500)
+          .json({ message: "Error generating barcode: " + err.message });
       } else {
         const filePath = `${barcodesDir}/${numberStr}.png`;
         fs.writeFileSync(filePath, png);
         console.log("✅ Barcode generated successfully:", filePath);
         res.status(200).json({
           message: "Barcode generated successfully",
-          filePath: filePath
+          filePath: filePath,
         });
       }
     }
@@ -371,9 +373,7 @@ const deleteProduct = async (req, res) => {
       .status(500)
       .json({ message: "Error deleting product", error: error.message });
   }
-}
-
-
+};
 
 module.exports = {
   addProduct,
