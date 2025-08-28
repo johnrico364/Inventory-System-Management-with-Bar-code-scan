@@ -19,7 +19,7 @@ interface Product {
   boxNumber?: string;
   status: "in-stock" | "low-stock" | "out-of-stock";
   lastUpdated: string;
-}
+};
 
 export default function Products() {
   const { darkMode, toggleDarkMode } = useDarkMode();
@@ -42,6 +42,8 @@ export default function Products() {
   const [barcodeImages, setBarcodeImages] = useState<{ [key: string]: string }>(
     {}
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Generate random barcode
   const generateBarcode = () => {
@@ -164,6 +166,11 @@ export default function Products() {
     }
   }, [products]);
 
+  // Add this useEffect
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when search/filters change
+  }, [searchTerm, selectedCategory, selectedBrand, selectedStockStatus]);
+
   const getStockStatus = (stocks: number) => {
     if (stocks === 0) return "out-of-stock";
     if (stocks <= 10) return "low-stock";
@@ -186,9 +193,7 @@ export default function Products() {
         getStockStatus(product.stocks) === selectedStockStatus;
       const matchesBrand =
         selectedBrand === "all" || product.brand === selectedBrand;
-      return (
-        matchesSearch && matchesCategory && matchesStockStatus && matchesBrand
-      );
+      return matchesSearch && matchesCategory && matchesStockStatus && matchesBrand;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -207,6 +212,12 @@ export default function Products() {
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
+
+  // Calculate pagination values
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const categories = [
     "all",
@@ -531,6 +542,102 @@ export default function Products() {
     };
   };
 
+  // Pagination controls component
+  const PaginationControls = ({ 
+    currentPage, 
+    totalPages, 
+    onPageChange, 
+    itemsPerPage, 
+    onItemsPerPageChange,
+    darkMode 
+  }: {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    itemsPerPage: number;
+    onItemsPerPageChange: (items: number) => void;
+    darkMode: boolean;
+  }) => {
+    return (
+      <div className="flex items-center justify-between mt-4 px-4">
+        <div className="flex items-center gap-2">
+          <select
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className={`px-2 py-1 border rounded-md ${
+              darkMode
+                ? "bg-gray-800 text-gray-200 border-gray-700"
+                : "bg-white text-gray-900 border-gray-300"
+            }`}
+          >
+            <option value={5}>5 per page</option>
+            <option value={10}>10 per page</option>
+            <option value={20}>20 per page</option>
+            <option value={50}>50 per page</option>
+          </select>
+          <span className={darkMode ? "text-gray-300" : "text-gray-600"}>
+            Page {currentPage} of {totalPages}
+          </span>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => onPageChange(1)}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded-md ${
+              darkMode
+                ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-500"
+                : "bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+            } border ${
+              darkMode ? "border-gray-700" : "border-gray-300"
+            }`}
+          >
+            First
+          </button>
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded-md ${
+              darkMode
+                ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-500"
+                : "bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+            } border ${
+              darkMode ? "border-gray-700" : "border-gray-300"
+            }`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded-md ${
+              darkMode
+                ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-500"
+                : "bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+            } border ${
+              darkMode ? "border-gray-700" : "border-gray-300"
+            }`}
+          >
+            Next
+          </button>
+          <button
+            onClick={() => onPageChange(totalPages)}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded-md ${
+              darkMode
+                ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-500"
+                : "bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+            } border ${
+              darkMode ? "border-gray-700" : "border-gray-300"
+            }`}
+          >
+            Last
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div
@@ -837,7 +944,7 @@ export default function Products() {
                     : "bg-white divide-y divide-gray-200"
                 }
               >
-                {filteredProducts.map((product) => {
+                {currentItems.map((product) => {
                   return (
                     <tr
                       key={product._id}
@@ -845,35 +952,7 @@ export default function Products() {
                         darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"
                       }
                     >
-                      {/* Barcode img */}
-                      {/* <td className="px-6 py-4">                        
-                        {barcodeImages[product._id] ? (
-                          <img
-                            src={barcodeImages[product._id]}
-                            alt={`Barcode: ${product.barcode}`}
-                            className="w-50 h-auto" // Reduced width to 24 (96px)
-                            onError={(e) => {
-                              console.error(
-                                "❌ Failed to load barcode image for product:",
-                                product._id
-                              );
-                              e.currentTarget.style.display = "none";
-                              // Try to regenerate the barcode
-                              generateSingleBarcode(product);
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className={
-                              darkMode
-                                ? "flex items-center justify-center h-10 w-24 bg-gray-800 rounded"
-                                : "flex items-center justify-center h-10 w-24 bg-gray-100 rounded"
-                            }
-                          >
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          </div>
-                        )}
-                      </td> */}
+                    
                       <td
                         className={
                           darkMode
@@ -1013,14 +1092,25 @@ export default function Products() {
           </div>
         </div>
 
-        <div
-          className={
-            darkMode
-              ? "mt-4 text-sm text-gray-400"
-              : "mt-4 text-sm text-gray-600"
-          }
-        >
-          Showing {filteredProducts.length} of {products.length} products
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            // Scroll to top of table
+            document.querySelector('.overflow-x-auto')?.scrollTo({ behavior: 'smooth' });
+          }}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={(items) => {
+            setItemsPerPage(items);
+            setCurrentPage(1); // Reset to first page when changing items per page
+          }}
+          darkMode={darkMode}
+        />
+
+        {/* Update the products count display */}
+        <div className={darkMode ? "mt-4 text-sm text-gray-400" : "mt-4 text-sm text-gray-600"}>
+          Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredProducts.length)} of {filteredProducts.length} products
         </div>
       </div>
 
@@ -1036,7 +1126,7 @@ export default function Products() {
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onProductUpdated={handleProductUpdated}
-        product={selectedProduct}
+        product={selectedProduct || null}
       />
 
       {/* Delete Product Modal */}
