@@ -22,8 +22,9 @@ export default function ProductTable() {
     const [error, setError] = useState('');
     const [sortField, setSortField] = useState<keyof Product>('brand');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const handeDeleteProduct = async (id: string) => {
+    const handleDeleteProduct = async (id: string) => {
         try {
             const response = await axios.delete(`http://localhost:4000/api/products/delete/${id}`);
             if (response.status === 200) {
@@ -32,7 +33,22 @@ export default function ProductTable() {
                 throw new Error('Failed to delete product');
             }
         } catch (error) {
+            setError('Failed to delete product');
+        }
+    }
 
+    const handleDeleteAll = async () => {
+        try {
+            const response = await axios.delete('http://localhost:4000/api/products/delete-all');
+            if (response.status === 200) {
+                setShowDeleteConfirm(false);
+                fetchProducts();
+            } else {
+                throw new Error('Failed to delete all products');
+            }
+        } catch (error) {
+            setError('Failed to delete all products');
+            setShowDeleteConfirm(false);
         }
     }
 
@@ -72,6 +88,41 @@ export default function ProductTable() {
 
     return (
         <div className="container mx-auto p-4">
+            <div className="mb-4 flex justify-end">
+                <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                    disabled={products.length === 0}
+                >
+                    Delete All Products
+                </button>
+            </div>
+
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete All</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Are you sure you want to delete all products? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteAll}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            >
+                                Delete All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="overflow-x-auto">
                 <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-lg text-center">
                     <thead className="bg-gray-100">
@@ -119,7 +170,7 @@ export default function ProductTable() {
                                     <div className="flex justify-center space-x-2">
                                         <button
                                             className="text-red-600 hover:text-red-800"
-                                            onClick={() => handeDeleteProduct(product._id)}
+                                            onClick={() => handleDeleteProduct(product._id)}
                                         >
                                             <FiTrash2 />
                                         </button>

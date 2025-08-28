@@ -1,11 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import AddProductModal from './modal/AddproductModal';
-import EditProductModal from './modal/EditProductModal';
-import DeleteProductModal from './modal/DeleteProductModal';
-import { useDarkMode } from '../context/DarkModeContext';
-import ProductDetails from './Productdetails';
+import { useState, useEffect } from "react";
+import AddProductModal from "./modal/AddproductModal";
+import EditProductModal from "./modal/EditProductModal";
+import DeleteProductModal from "./modal/DeleteProductModal";
+import StockInModal from "./modal/StockInModal";
+import StockOutModal from "./modal/StockOutModal";
+import { useDarkMode } from "../context/DarkModeContext";
+import ProductDetails from "./Productdetails";
 interface Product {
   _id: string;
   brand: string;
@@ -13,7 +15,9 @@ interface Product {
   description: string;
   category: string;
   stocks: number;
-  status: 'in-stock' | 'low-stock' | 'out-of-stock';
+  boxColor?: string;
+  boxNumber?: string;
+  status: "in-stock" | "low-stock" | "out-of-stock";
   lastUpdated: string;
 }
 
@@ -21,15 +25,23 @@ export default function Products() {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showStockInModal, setShowStockInModal] = useState(false);
+  const [showStockOutModal, setShowStockOutModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStockStatus, setSelectedStockStatus] = useState("all");
+  const [selectedBrand, setSelectedBrand] = useState("all");
+  const [sortBy, setSortBy] = useState("brand");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [error, setError] = useState('');
-  const [barcodeImages, setBarcodeImages] = useState<{[key: string]: string}>({});
+  const [error, setError] = useState("");
+  const [barcodeImages, setBarcodeImages] = useState<{ [key: string]: string }>(
+    {}
+  );
 
   // Generate random barcode
   const generateBarcode = () => {
@@ -39,71 +51,77 @@ export default function Products() {
   // Generate barcode image from backend
   const generateBarcodeImage = async (barcodeNumber: number) => {
     try {
-      console.log('🎨 Generating barcode for:', barcodeNumber);
-      const response = await fetch('http://localhost:4000/api/products/generate-barcode', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ number: barcodeNumber.toString() }),
-      });
+      const response = await fetch(
+        "http://localhost:4000/api/products/generate-barcode",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ number: barcodeNumber.toString() }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('✅ Barcode generated successfully:', result);
-      
+
       // Add a small delay to ensure the file is fully written
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Return the path to the generated barcode image
       return `http://localhost:4000/barcodes/${barcodeNumber}.png`;
     } catch (error) {
-      console.error('❌ Error generating barcode:', error);
+      console.error("❌ Error generating barcode:", error);
       return null;
     }
   };
 
   // Generate barcodes for all products
   const generateAllBarcodes = async () => {
-    console.log('🎨 Starting barcode generation for', products.length, 'products');
-    
-    const newBarcodeImages: {[key: string]: string} = {};
-    
+
+    const newBarcodeImages: { [key: string]: string } = {};
+
     for (const product of products) {
       // Skip if barcode already exists
       if (barcodeImages[product._id]) {
         newBarcodeImages[product._id] = barcodeImages[product._id];
         continue;
       }
-      
+
       const barcodeImageUrl = await generateBarcodeImage(product.barcode);
       if (barcodeImageUrl) {
         newBarcodeImages[product._id] = barcodeImageUrl;
       }
     }
-    
+
     setBarcodeImages(newBarcodeImages);
-    console.log('🎨 Barcode generation completed');
   };
 
   // Generate barcode for a single product
   const generateSingleBarcode = async (product: Product, retryCount = 0) => {
-    console.log('🎨 Generating barcode for single product:', product.brand, `(attempt ${retryCount + 1})`);
+    console.log(
+      "🎨 Generating barcode for single product:",
+      product.brand,
+      `(attempt ${retryCount + 1})`
+    );
     const barcodeImageUrl = await generateBarcodeImage(product.barcode);
     if (barcodeImageUrl) {
-      setBarcodeImages(prev => ({
+      setBarcodeImages((prev) => ({
         ...prev,
-        [product._id]: barcodeImageUrl
+        [product._id]: barcodeImageUrl,
       }));
-      console.log('✅ Barcode generated successfully for:', product.brand);
+      console.log("✅ Barcode generated successfully for:", product.brand);
     } else if (retryCount < 2) {
-      console.log('🔄 Retrying barcode generation for:', product.brand);
+      console.log("🔄 Retrying barcode generation for:", product.brand);
       setTimeout(() => generateSingleBarcode(product, retryCount + 1), 1000);
     } else {
-      console.error('❌ Failed to generate barcode after 3 attempts for:', product.brand);
+      console.error(
+        "❌ Failed to generate barcode after 3 attempts for:",
+        product.brand
+      );
     }
   };
 
@@ -111,21 +129,25 @@ export default function Products() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      setError('');
-      console.log('📡 Fetching products from API...');
-      const response = await fetch('http://localhost:4000/api/products/get');
-      console.log('📥 Products response:', response.status, response.statusText);
-      
+      setError("");
+      console.log("📡 Fetching products from API...");
+      const response = await fetch("http://localhost:4000/api/products/get");
+      console.log(
+        "📥 Products response:",
+        response.status,
+        response.statusText
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      console.log('✅ Products fetched successfully:', data);
+      console.log("✅ Products fetched successfully:", data);
       setProducts(data);
     } catch (err) {
-      console.error('❌ Error fetching products:', err);
-      setError('Failed to fetch products. Please try again.');
+      console.error("❌ Error fetching products:", err);
+      setError("Failed to fetch products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -142,48 +164,95 @@ export default function Products() {
     }
   }, [products]);
 
-  const filteredProducts = products.filter(product => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      product.brand.toLowerCase().includes(searchLower) ||
-      product.barcode.toString().includes(searchLower) ||
-      product.description.toLowerCase().includes(searchLower) ||
-      product.category.toLowerCase().includes(searchLower) ||
-      product.stocks.toString().includes(searchLower);
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const getStockStatus = (stocks: number) => {
+    if (stocks === 0) return "out-of-stock";
+    if (stocks <= 10) return "low-stock";
+    return "in-stock";
+  };
 
-  const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
+  const filteredProducts = products
+    .filter((product) => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        product.brand.toLowerCase().includes(searchLower) ||
+        product.barcode.toString().includes(searchLower) ||
+        product.description.toLowerCase().includes(searchLower) ||
+        product.category.toLowerCase().includes(searchLower) ||
+        product.stocks.toString().includes(searchLower);
+      const matchesCategory =
+        selectedCategory === "all" || product.category === selectedCategory;
+      const matchesStockStatus =
+        selectedStockStatus === "all" ||
+        getStockStatus(product.stocks) === selectedStockStatus;
+      const matchesBrand =
+        selectedBrand === "all" || product.brand === selectedBrand;
+      return (
+        matchesSearch && matchesCategory && matchesStockStatus && matchesBrand
+      );
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "brand":
+          comparison = a.brand.localeCompare(b.brand);
+          break;
+        case "stocks":
+          comparison = a.stocks - b.stocks;
+          break;
+        case "category":
+          comparison = a.category.localeCompare(b.category);
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+  const categories = [
+    "all",
+    ...Array.from(new Set(products.map((p) => p.category))),
+  ];
+  const brands = ["all", ...Array.from(new Set(products.map((p) => p.brand)))];
+  const stockStatuses = ["all", "in-stock", "low-stock", "out-of-stock"];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'in-stock': return 'bg-green-100 text-green-800';
-      case 'low-stock': return 'bg-orange-100 text-orange-800';
-      case 'out-of-stock': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "in-stock":
+        return "bg-green-100 text-green-800";
+      case "low-stock":
+        return "bg-orange-100 text-orange-800";
+      case "out-of-stock":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'in-stock': return 'In Stock';
-      case 'low-stock': return 'Low Stock';
-      case 'out-of-stock': return 'Out of Stock';
-      default: return status;
+      case "in-stock":
+        return "In Stock";
+      case "low-stock":
+        return "Low Stock";
+      case "out-of-stock":
+        return "Out of Stock";
+      default:
+        return status;
     }
   };
 
   const handleProductAdded = async (newProduct?: Product) => {
-    console.log('🔄 Product added, refreshing products list...');
+    console.log("🔄 Product added, refreshing products list...");
     await fetchProducts(); // Refresh the products list
-    
+
     // If we have the new product data, generate its barcode immediately
     if (newProduct) {
-      console.log('🎨 Generating barcode for new product:', newProduct);
+      console.log("🎨 Generating barcode for new product:", newProduct);
       await generateSingleBarcode(newProduct);
     } else {
-      console.log('⚠️ No new product data provided, will generate barcodes for all products');
+      console.log(
+        "⚠️ No new product data provided, will generate barcodes for all products"
+      );
       // Generate barcodes for all products if no specific product data
       await generateAllBarcodes();
     }
@@ -213,15 +282,15 @@ export default function Products() {
 
   // Print barcode label
   const handlePrintBarcode = (product: Product) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert('Please allow popups to print barcode labels');
+      alert("Please allow popups to print barcode labels");
       return;
     }
 
     const barcodeImageUrl = barcodeImages[product._id];
     if (!barcodeImageUrl) {
-      alert('Barcode image not available. Please wait for it to load.');
+      alert("Barcode image not available. Please wait for it to load.");
       return;
     }
 
@@ -305,7 +374,7 @@ export default function Products() {
 
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
+
     // Wait for images to load before printing
     printWindow.onload = () => {
       setTimeout(() => {
@@ -317,22 +386,27 @@ export default function Products() {
 
   // Bulk print all barcode labels
   const handleBulkPrintBarcodes = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert('Please allow popups to print barcode labels');
+      alert("Please allow popups to print barcode labels");
       return;
     }
 
     // Check if all barcodes are loaded
-    const productsWithoutBarcodes = products.filter(product => !barcodeImages[product._id]);
+    const productsWithoutBarcodes = products.filter(
+      (product) => !barcodeImages[product._id]
+    );
     if (productsWithoutBarcodes.length > 0) {
-      alert(`Barcode images not available for ${productsWithoutBarcodes.length} products. Please wait for them to load.`);
+      alert(
+        `Barcode images not available for ${productsWithoutBarcodes.length} products. Please wait for them to load.`
+      );
       return;
     }
 
-    const labelsHtml = products.map(product => {
-      const barcodeImageUrl = barcodeImages[product._id];
-      return `
+    const labelsHtml = products
+      .map((product) => {
+        const barcodeImageUrl = barcodeImages[product._id];
+        return `
         <div class="barcode-label">
           <div class="product-info">
             <div class="brand">${product.brand}</div>
@@ -344,7 +418,8 @@ export default function Products() {
           <div class="stock-info">Stock: ${product.stocks} units</div>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     const printContent = `
       <!DOCTYPE html>
@@ -435,7 +510,9 @@ export default function Products() {
         <body>
           <div class="header">
             <h1>Inventory Barcode Labels</h1>
-            <p>Total Products: ${products.length} | Generated: ${new Date().toLocaleString()}</p>
+            <p>Total Products: ${
+              products.length
+            } | Generated: ${new Date().toLocaleString()}</p>
           </div>
           ${labelsHtml}
         </body>
@@ -444,7 +521,7 @@ export default function Products() {
 
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
+
     // Wait for images to load before printing
     printWindow.onload = () => {
       setTimeout(() => {
@@ -456,21 +533,45 @@ export default function Products() {
 
   if (loading) {
     return (
-      <div className={darkMode ? "min-h-screen flex items-center justify-center bg-gray-900" : "min-h-screen flex items-center justify-center bg-gray-50"}>
+      <div
+        className={
+          darkMode
+            ? "min-h-screen flex items-center justify-center bg-gray-900"
+            : "min-h-screen flex items-center justify-center bg-gray-50"
+        }
+      >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className={darkMode ? "min-h-screen bg-gray-900 text-white transition-colors" : "min-h-screen bg-white transition-colors"}>
+    <div
+      className={
+        darkMode
+          ? "min-h-screen bg-gray-900 text-white transition-colors"
+          : "min-h-screen bg-white transition-colors"
+      }
+    >
       {/* Header */}
-      <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"}>
+      <div
+        className={
+          darkMode
+            ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950"
+            : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"
+        }
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-white">Products</h1>
-              <p className={darkMode ? "text-blue-200 mt-1" : "text-blue-100 mt-1"}>Manage your inventory products</p>
+              <p
+                className={
+                  darkMode ? "text-blue-200 mt-1" : "text-blue-100 mt-1"
+                }
+              >
+                Manage your inventory products
+              </p>
             </div>
             <div className="mt-4 sm:mt-0 flex gap-2">
               <button
@@ -501,128 +602,424 @@ export default function Products() {
       )}
 
       {/* Filters */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 mb-6" : "bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"}>
-          <div className="flex flex-col md:flex-row gap-4">
+      <div className="max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div
+          className={
+            darkMode
+              ? "bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4 mb-6"
+              : "bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6"
+          }
+        >
+          <div className="flex items-center space-x-4">
             <div className="flex-1">
-              <label className={darkMode ? "block text-sm font-medium text-white mb-2" : "block text-sm font-medium text-gray-700 mb-2"}>Search Products</label>
               <input
                 type="text"
-                placeholder="Search by brand, barcode, description, category, or stocks..."
+                placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                  darkMode
+                    ? "bg-gray-900 text-white placeholder-gray-400"
+                    : "bg-white text-gray-900 placeholder-gray-500"
+                }`}
               />
             </div>
-            <div className="md:w-48">
-              <label className={darkMode ? "block text-sm font-medium text-white mb-2":"block text-sm font-medium text-gray-700 mb-2"}>Category</label>
+
+            <div className="w-48">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}`}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                  darkMode
+                    ? "bg-gray-900 text-blue-100"
+                    : "bg-white text-blue-900"
+                }`}
               >
-                {categories.map(cat => (
-                  <option key={cat} value={cat} className={darkMode ? 'bg-gray-900 text-blue-100' : 'bg-white text-blue-900'}>
-                    {cat === 'all' ? 'All Categories' : cat}
-                  </option>
-                ))}
+                <option value="all">All Categories</option>
+                {categories
+                  .filter((cat) => cat !== "all")
+                  .map((cat) => (
+                    <option
+                      key={cat}
+                      value={cat}
+                      className={
+                        darkMode
+                          ? "bg-gray-900 text-blue-100"
+                          : "bg-white text-blue-900"
+                      }
+                    >
+                      {cat}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="w-48">
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                  darkMode
+                    ? "bg-gray-900 text-blue-100"
+                    : "bg-white text-blue-900"
+                }`}
+              >
+                <option value="all">All Brands</option>
+                {brands
+                  .filter((brand) => brand !== "all")
+                  .map((brand) => (
+                    <option
+                      key={brand}
+                      value={brand}
+                      className={
+                        darkMode
+                          ? "bg-gray-900 text-blue-100"
+                          : "bg-white text-blue-900"
+                      }
+                    >
+                      {brand}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="w-48">
+              <select
+                value={selectedStockStatus}
+                onChange={(e) => setSelectedStockStatus(e.target.value)}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                  darkMode
+                    ? "bg-gray-900 text-blue-100"
+                    : "bg-white text-blue-900"
+                }`}
+              >
+                <option value="all">All Stock Status</option>
+                {stockStatuses
+                  .filter((status) => status !== "all")
+                  .map((status) => (
+                    <option
+                      key={status}
+                      value={status}
+                      className={
+                        darkMode
+                          ? "bg-gray-900 text-blue-100"
+                          : "bg-white text-blue-900"
+                      }
+                    >
+                      {status
+                        .split("-")
+                        .map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        )
+                        .join(" ")}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
         </div>
 
         {/* Products Table */}
-        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"}>
+        <div
+          className={
+            darkMode
+              ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden w-full max-w-[98vw] mx-auto"
+              : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden w-full max-w-[98vw] mx-auto"
+          }
+        >
           <div className="overflow-x-auto">
-            <table className={darkMode ? "min-w-full divide-y divide-gray-700" : "min-w-full divide-y divide-gray-200"}>
+            <table
+              className={
+                darkMode
+                  ? "w-full divide-y divide-gray-700"
+                  : "w-full divide-y divide-gray-200"
+              }
+            >
               <thead className={darkMode ? "bg-gray-800" : "bg-gray-50"}>
                 <tr>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Barcode</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Brand</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Description</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Category</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>Stocks</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300" : "px-6 py-3 text-left text-xs font-semibold text-blue-800"}>Barcode Number</th>
-                  <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300" : "px-6 py-3 text-left text-xs font-semibold text-blue-800"}>Actions</th>
+                  {/* Barcode img */}
+                  {/* <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Barcode
+                  </th> */}
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800"
+                    }
+                  >
+                    Barcode Number
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Brand
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Description
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Category
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Stocks
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Box Color
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    Box Number
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"
+                    }
+                  >
+                    In/Out
+                  </th>
+                  <th
+                    className={
+                      darkMode
+                        ? "px-6 py-3 text-left text-xs font-semibold text-gray-300"
+                        : "px-6 py-3 text-left text-xs font-semibold text-blue-800"
+                    }
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
-              <tbody className={darkMode ? "bg-gray-900 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}>
-                {filteredProducts.map(product => (
-                  <tr key={product._id} className={darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"}>
-                    <td className="px-6 py-4">
-                      {barcodeImages[product._id] ? (
-                        <img 
-                          src={barcodeImages[product._id]} 
-                          alt={`Barcode: ${product.barcode}`} 
-                          className="w-50 h-auto" // Reduced width to 24 (96px)
-                          onError={(e) => {
-                            console.error('❌ Failed to load barcode image for product:', product._id);
-                            e.currentTarget.style.display = 'none';
-                            // Try to regenerate the barcode
-                            generateSingleBarcode(product);
-                          }}
-                        />
-                      ) : (
-                        <div className={darkMode ? "flex items-center justify-center h-10 w-24 bg-gray-800 rounded" : "flex items-center justify-center h-10 w-24 bg-gray-100 rounded"}>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className={darkMode ? "text-sm font-medium text-blue-400 cursor-pointer hover:underline" : "text-sm font-medium text-blue-700 cursor-pointer hover:underline"}
-                        onClick={() => {
-                          setSelectedProduct(product);
-                          setShowDetails(true);
-                        }}
+              <tbody
+                className={
+                  darkMode
+                    ? "bg-gray-900 divide-y divide-gray-700"
+                    : "bg-white divide-y divide-gray-200"
+                }
+              >
+                {filteredProducts.map((product) => {
+                  return (
+                    <tr
+                      key={product._id}
+                      className={
+                        darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"
+                      }
+                    >
+                      {/* Barcode img */}
+                      {/* <td className="px-6 py-4">                        
+                        {barcodeImages[product._id] ? (
+                          <img
+                            src={barcodeImages[product._id]}
+                            alt={`Barcode: ${product.barcode}`}
+                            className="w-50 h-auto" // Reduced width to 24 (96px)
+                            onError={(e) => {
+                              console.error(
+                                "❌ Failed to load barcode image for product:",
+                                product._id
+                              );
+                              e.currentTarget.style.display = "none";
+                              // Try to regenerate the barcode
+                              generateSingleBarcode(product);
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className={
+                              darkMode
+                                ? "flex items-center justify-center h-10 w-24 bg-gray-800 rounded"
+                                : "flex items-center justify-center h-10 w-24 bg-gray-100 rounded"
+                            }
+                          >
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
+                      </td> */}
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.barcode}
+                      </td>
+
+                     <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
                       >
                         {product.brand}
-                      </div>
-                    </td>
-                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.description}</td>
-                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.category}</td>
-                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.stocks}</td>
-                    <td className={darkMode ? "px-6 py-4 text-sm text-gray-300" : "px-6 py-4 text-sm text-blue-800"}>{product.barcode}</td>
-                    <td className="px-6 py-4 text-sm text-blue-800">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleOpenEditModal(product)}
-                          className={darkMode 
-                            ? "text-blue-400 hover:text-blue-300 bg-blue-900/50 hover:bg-blue-800 px-2 py-1 rounded text-xs font-medium transition-colors" 
-                            : "text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
-                          }
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handlePrintBarcode(product)}
-                          className={darkMode
-                            ? "text-green-400 hover:text-green-300 bg-green-900/50 hover:bg-green-800 px-2 py-1 rounded text-xs font-medium transition-colors"
-                            : "text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-xs font-medium transition-colors"
-                          }
-                          title="Print Barcode Label"
-                        >
-                          🖨️
-                        </button>
-                        <button
-                          onClick={() => handleOpenDeleteModal(product)}
-                          className={darkMode
-                            ? "text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-800 px-2 py-1 rounded text-xs font-medium transition-colors"
-                            : "text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.description}
+                      </td>
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.category}
+                      </td>
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.stocks}
+                      </td>
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.boxColor || "-"}
+                      </td>
+                      <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.boxNumber || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-blue-800">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setShowStockInModal(true);
+                            }}
+                            className={
+                              darkMode
+                                ? "text-blue-400 hover:text-blue-300 bg-blue-900/50 hover:bg-blue-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                : "text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            }
+                          >
+                            Stock in
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setShowStockOutModal(true);
+                            }}
+                            className={
+                              darkMode
+                                ? "text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                : "text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            }
+                          >
+                            Stock out
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-blue-800">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleOpenEditModal(product)}
+                            className={
+                              darkMode
+                                ? "text-blue-400 hover:text-blue-300 bg-blue-900/50 hover:bg-blue-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                : "text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            }
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handlePrintBarcode(product)}
+                            className={
+                              darkMode
+                                ? "text-green-400 hover:text-green-300 bg-green-900/50 hover:bg-green-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                : "text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            }
+                            title="Print Barcode Label"
+                          >
+                            🖨️
+                          </button>
+                          <button
+                            onClick={() => handleOpenDeleteModal(product)}
+                            className={
+                              darkMode
+                                ? "text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-800 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                : "text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-xs font-medium transition-colors"
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className={darkMode ? "mt-4 text-sm text-gray-400" : "mt-4 text-sm text-gray-600"}>
+        <div
+          className={
+            darkMode
+              ? "mt-4 text-sm text-gray-400"
+              : "mt-4 text-sm text-gray-600"
+          }
+        >
           Showing {filteredProducts.length} of {products.length} products
         </div>
       </div>
@@ -656,6 +1053,26 @@ export default function Products() {
           product={selectedProduct}
           isOpen={showDetails}
           onClose={() => setShowDetails(false)}
+        />
+      )}
+
+      {/* Stock In Modal */}
+      {selectedProduct && (
+        <StockInModal
+          isOpen={showStockInModal}
+          onClose={() => setShowStockInModal(false)}
+          product={selectedProduct}
+          onStockUpdated={handleProductUpdated}
+        />
+      )}
+
+      {/* Stock Out Modal */}
+      {selectedProduct && (
+        <StockOutModal
+          isOpen={showStockOutModal}
+          onClose={() => setShowStockOutModal(false)}
+          product={selectedProduct}
+          onStockUpdated={handleProductUpdated}
         />
       )}
     </div>

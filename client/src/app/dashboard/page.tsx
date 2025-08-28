@@ -37,11 +37,26 @@ interface StockStatus {
   outOfStock: number;
 }
 
+interface Transaction {
+  _id: string;
+  product: Product;
+  quantity: number;
+  action: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Dashboard() {
   // Dark mode state with localStorage persistence
   const { darkMode, toggleDarkMode } = useDarkMode();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<InventoryStats>({
     totalProducts: 0,
     lowStockItems: 0,
@@ -107,8 +122,22 @@ export default function Dashboard() {
     };
   };
 
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/transactions/get');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setTransactions(data);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchTransactions();
   }, []);
 
   useEffect(() => {
@@ -175,28 +204,28 @@ export default function Dashboard() {
     const colors = ['bg-blue-800', 'bg-blue-600', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
 
     return (
-      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+      <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
         <div className="flex items-center mb-4">
           <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
-          <span className="text-blue-700 text-xl mr-2">🏷️</span>
-          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Top Categories</h3>
+          <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>🏷️</span>
+          <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Top Categories</h3>
         </div>
         <div className="space-y-3">
           {categoryData.map((category, index) => (
             <div key={category.name} className="flex items-center justify-between group">
               <div className="flex items-center">
                 <div className={`w-4 h-4 rounded-full ${colors[index % colors.length]} mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform`}></div>
-                <span className="text-blue-900 font-semibold text-base group-hover:text-blue-800 transition-colors">{category.name}</span>
+                <span className={`font-semibold text-base ${darkMode ? "text-white hover:text-gray-200" : "text-blue-900 hover:text-blue-800"} transition-colors`}>{category.name}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-blue-800 font-semibold">{category.count} items</span>
-                <span className="text-xs text-blue-400 font-medium">({category.percentage}%)</span>
+                <span className={`font-semibold ${darkMode ? "text-gray-300" : "text-blue-800"}`}>{category.count} items</span>
+                <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-400"} font-medium`}>({category.percentage}%)</span>
               </div>
             </div>
           ))}
         </div>
         <div className="mt-4 pt-4 border-t border-blue-100">
-          <div className="flex justify-between text-xs text-blue-700 font-semibold tracking-wide">
+          <div className="flex justify-between text-xs text-white font-semibold tracking-wide">
             <span>Total Categories: {Object.keys(categories).length}</span>
             <span>Total Products: {total}</span>
           </div>
@@ -214,46 +243,46 @@ export default function Dashboard() {
     const getPercentage = (count: number) => Math.round((count / total) * 100);
 
     return (
-      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+      <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
         <div className="flex items-center mb-4">
           <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
-          <span className="text-blue-700 text-xl mr-2">📊</span>
-          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Stock Status Overview</h3>
+          <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>📊</span>
+          <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Stock Status Overview</h3>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-4 h-4 bg-green-500 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
-              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">In Stock</span>
+              <div className={`w-4 h-4 bg-green-500 rounded-full mr-3 border-2 ${darkMode ? "border-gray-600" : "border-blue-100"} group-hover:scale-110 transition-transform`}></div>
+              <span className={`font-semibold ${darkMode ? "text-white hover:text-gray-200" : "text-blue-900 hover:text-blue-800"} transition-colors`}>In Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-green-700">{inStock}</span>
-              <span className="text-xs text-blue-400 font-medium">({getPercentage(inStock)}%)</span>
+              <span className={`font-semibold ${darkMode ? "text-green-400" : "text-green-700"}`}>{inStock}</span>
+              <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-400"} font-medium`}>({getPercentage(inStock)}%)</span>
             </div>
           </div>
           <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-4 h-4 bg-orange-400 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
-              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">Low Stock</span>
+              <div className={`w-4 h-4 bg-orange-400 rounded-full mr-3 border-2 ${darkMode ? "border-gray-600" : "border-blue-100"} group-hover:scale-110 transition-transform`}></div>
+              <span className={`font-semibold ${darkMode ? "text-white hover:text-gray-200" : "text-blue-900 hover:text-blue-800"} transition-colors`}>Low Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-orange-600">{lowStock}</span>
-              <span className="text-xs text-blue-400 font-medium">({getPercentage(lowStock)}%)</span>
+              <span className={`font-semibold ${darkMode ? "text-orange-400" : "text-orange-600"}`}>{lowStock}</span>
+              <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-400"} font-medium`}>({getPercentage(lowStock)}%)</span>
             </div>
           </div>
           <div className="flex items-center justify-between group">
             <div className="flex items-center">
-              <div className="w-4 h-4 bg-red-500 rounded-full mr-3 border-2 border-blue-100 group-hover:scale-110 transition-transform"></div>
-              <span className="text-blue-900 font-semibold group-hover:text-blue-800 transition-colors">Out of Stock</span>
+              <div className={`w-4 h-4 bg-red-500 rounded-full mr-3 border-2 ${darkMode ? "border-gray-600" : "border-blue-100"} group-hover:scale-110 transition-transform`}></div>
+              <span className={`font-semibold ${darkMode ? "text-white hover:text-gray-200" : "text-blue-900 hover:text-blue-800"} transition-colors`}>Out of Stock</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-red-600">{outOfStock}</span>
-              <span className="text-xs text-blue-400 font-medium">({getPercentage(outOfStock)}%)</span>
+              <span className={`font-semibold ${darkMode ? "text-red-400" : "text-red-600"}`}>{outOfStock}</span>
+              <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-400"} font-medium`}>({getPercentage(outOfStock)}%)</span>
             </div>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-blue-100">
-          <div className="w-full bg-blue-100 rounded-full h-2 flex overflow-hidden">
+        <div className={`mt-4 pt-4 border-t ${darkMode ? "border-gray-700" : "border-blue-100"}`}>
+          <div className={`w-full ${darkMode ? "bg-gray-700" : "bg-blue-100"} rounded-full h-2 flex overflow-hidden`}>
             <div 
               className="bg-green-500 h-2 rounded-l-full"
               style={{ width: `${getPercentage(inStock)}%` }}
@@ -283,98 +312,187 @@ export default function Dashboard() {
       });
     };
 
+    // Get all recent products instead of just 5
+    const recentProducts = [...products]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return (
-      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+      <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
         <div className="flex items-center mb-4">
           <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
-          <span className="text-blue-700 text-xl mr-2">🆕</span>
-          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Recently Added Products</h3>
+          <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>🆕</span>
+          <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Recently Added Products</h3>
         </div>
-        <div className="space-y-3">
-          {products.map((product) => (
-            <div key={product._id} className="flex items-center justify-between py-2 border-b border-blue-100 last:border-b-0 group">
-              <div className="flex-1">
-                <p className="font-semibold text-blue-900 text-sm group-hover:text-blue-800 transition-colors">{product.brand}</p>
-                <p className="text-xs text-blue-700">{product.category} • {product.stocks} in stock</p>
+        <div className="h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="space-y-3 pr-2">
+            {recentProducts.map((product) => (
+              <div key={product._id} className={`flex items-center justify-between py-2 border-b ${darkMode ? "border-gray-700" : "border-blue-100"} last:border-b-0 group ${darkMode ? "hover:bg-gray-700" : "hover:bg-blue-50"} rounded-lg transition-colors`}>
+                <div className="flex-1">
+                  <p className={`font-semibold text-sm ${darkMode ? "text-white group-hover:text-gray-200" : "text-blue-900 group-hover:text-blue-800"} transition-colors`}>{product.brand}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-700"} mb-1`}>{product.description}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-500" : "text-blue-600"}`}>{product.category} • {product.stocks} in stock</p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-400"} font-medium`}>{formatDate(product.createdAt)}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-300" : "text-black"}`}>#{product.barcode}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-blue-400 font-medium">{formatDate(product.createdAt)}</p>
-                <p className="text-xs text-black">#{product.barcode}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         {products.length === 0 && (
           <div className="flex flex-col items-center justify-center py-6">
             <span className="text-4xl mb-2">📦</span>
-            <p className="text-blue-700 text-base font-semibold">No recent products</p>
-            <p className="text-blue-600 text-xs">Add new products to see them here!</p>
+            <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-blue-700"}`}>No recent products</p>
+            <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>Add new products to see them here!</p>
           </div>
         )}
+      </div>
+    );
+  };
+
+  const OutOfStockChart = ({ products }: { products: Product[] }) => {
+    // Get all out of stock products
+    const outOfStockProducts = products.filter(p => p.stocks === 0);
+
+    return (
+      <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
+        <div className="flex items-center mb-4">
+          <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+          <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>🚫</span>
+          <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Out of Stock Items</h3>
+        </div>
+        <div className="h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="space-y-4 pr-2">
+            {outOfStockProducts.length > 0 ? (
+              outOfStockProducts.map(product => (
+                <div key={product._id} className="p-4 rounded-lg hover:bg-opacity-50 transition-all duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className={`font-semibold ${darkMode ? "text-white" : "text-blue-900"}`}>{product.brand}</span>
+                      <p className={`text-sm ${darkMode ? "text-white" : "text-blue-600"}`}>{product.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                        Out of Stock
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className={`text-xs ${darkMode ? "text-white" : "text-blue-600"}`}>
+                      Category: {product.category}
+                    </span>
+                    <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>
+                      Last updated: {new Date(product.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6">
+                <span className="text-4xl mb-2">✅</span>
+                <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-green-700"}`}>No out of stock items</p>
+                <p className={`text-xs ${darkMode ? "text-gray-400" : "text-green-600"}`}>All products are in stock</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
 
   const LowStockAlert = ({ products }: { products: Product[] }) => {
-    const lowStockProducts = products.filter(p => p.stocks > 0 && p.stocks <= 10).slice(0, 5);
+    // Get all low stock products instead of just 5
+    const lowStockProducts = products.filter(p => p.stocks > 0 && p.stocks <= 10);
 
     return (
-      <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-6">
+      <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
         <div className="flex items-center mb-4">
           <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
-          <span className="text-blue-700 text-xl mr-2">⚠️</span>
-          <h3 className="text-lg font-bold text-blue-900 tracking-wide">Low Stock Alerts</h3>
+          <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>⚠️</span>
+          <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Low Stock Alerts</h3>
         </div>
-        <div className="space-y-3">
-          {lowStockProducts.map((product) => (
-            <div key={product._id} className="flex items-center justify-between py-2 border-b border-blue-100 last:border-b-0 group">
-              <div className="flex-1">
-                <p className="font-semibold text-blue-900 text-sm group-hover:text-blue-800 transition-colors">{product.brand}</p>
-                <p className="text-xs text-blue-700">{product.description}</p>
-                <p className="text-xs text-blue-400">{product.category}</p>
+        <div className="h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="space-y-3 pr-2">
+            {lowStockProducts.map((product) => (
+              <div key={product._id} className={`flex items-center justify-between py-2 border-b ${darkMode ? "border-gray-700" : "border-blue-100"} last:border-b-0 group ${darkMode ? "hover:bg-gray-700" : "hover:bg-blue-50"} rounded-lg transition-colors`}>
+                <div className="flex-1">
+                  <p className={`font-semibold text-sm ${darkMode ? "text-white group-hover:text-gray-200" : "text-blue-900 group-hover:text-blue-800"} transition-colors`}>{product.brand}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-700"}`}>{product.description}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-500" : "text-blue-400"}`}>{product.category}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${darkMode ? "bg-orange-900/20 text-orange-400 border-orange-800" : "bg-orange-100 text-orange-800 border-orange-200"} border shadow-sm`}>
+                    {product.stocks} left
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 shadow-sm">
-                  {product.stocks} left
-                </span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         {lowStockProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-6">
             <span className="text-4xl mb-2">✅</span>
-            <p className="text-green-700 text-base font-semibold">All products have sufficient stock</p>
-            <p className="text-green-600 text-xs">No low stock alerts at the moment.</p>
+            <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-green-700"}`}>All products have sufficient stock</p>
+            <p className={`text-xs ${darkMode ? "text-gray-400" : "text-green-600"}`}>No low stock alerts at the moment.</p>
           </div>
         )}
       </div>
     );
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className={`min-h-screen ${darkMode ? "bg-gray-500" : "bg-gray-50"} flex items-center justify-center`}>
+  //       <div className="text-center">
+  //         <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${darkMode ? "border-blue-400" : "border-blue-600"} mx-auto mb-4`}></div>
+  //         <p className={`${darkMode ? "text-gray-400" : "text-gray-600"}`}>Loading dashboard data...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (error) {
+  // if (error) {
+  //   return (
+  //     <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-50"} flex items-center justify-center`}>
+  //       <div className="text-center">
+  //         <div className={`${darkMode ? "text-red-400" : "text-red-500"} text-6xl mb-4`}>⚠️</div>
+  //         <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mb-4`}>{error}</p>
+  //         <button 
+  //           onClick={fetchProducts}
+  //           className={`${darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-600 hover:bg-blue-700"} text-white px-4 py-2 rounded-lg transition-colors`}
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // Add global styles for custom scrollbar
+  const globalStyles = `
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: ${darkMode ? '#374151' : '#bfdbfe'};
+      border-radius: 20px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background-color: ${darkMode ? '#4b5563' : '#93c5fd'};
+    }
+  `;
+
+  if (!mounted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={fetchProducts}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Retry
-          </button>
+      <div className="min-h-screen bg-white transition-colors">
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </div>
     );
@@ -382,6 +500,7 @@ export default function Dashboard() {
 
   return (
     <div className={darkMode ? "min-h-screen bg-gray-900 text-white transition-colors" : "min-h-screen bg-white transition-colors"}>
+      <style>{globalStyles}</style>
       {/* Page Header */}
       <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 shadow-lg border-b border-blue-950" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 shadow-lg border-b border-blue-900"}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -471,9 +590,85 @@ export default function Dashboard() {
           <CategoryChart categories={stats.categories} />
         </div>
 
+        {/* Stock Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Most Stocked Out Items Chart */}
+          <div className={`${darkMode ? "bg-gray-800 hover:bg-gray-800/80" : "bg-white hover:bg-gray-50"} rounded-2xl shadow-xl border-2 ${darkMode ? "border-blue-900" : "border-blue-200"} hover:border-blue-500 p-6 transition-all duration-300`}>
+            <div className="flex items-center mb-4">
+              <div className="w-1.5 h-6 bg-blue-800 rounded-r-lg mr-3"></div>
+              <span className={`${darkMode ? "text-blue-400" : "text-blue-700"} text-xl mr-2`}>📉</span>
+              <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"} tracking-wide`}>Most Stocked Out Items</h3>
+            </div>
+            <div className="h-[400px] overflow-y-auto custom-scrollbar">
+              <div className="space-y-4 pr-2">
+                {transactions.length > 0 ? (
+                  [...products]
+                    .map(product => ({
+                      ...product,
+                      stockOutCount: transactions.filter(t => 
+                        t.product?._id === product._id && 
+                        t.action === 'Stock Out'
+                      ).reduce((sum, t) => sum + (t.quantity || 0), 0)
+                    }))
+                    .filter(product => product.stockOutCount > 0)
+                    .sort((a, b) => b.stockOutCount - a.stockOutCount)
+                    .map(product => {
+                      const totalStockOuts = transactions
+                        .filter(t => t.action === 'Stock Out')
+                        .reduce((sum, t) => sum + (t.quantity || 0), 0);
+                      const percentage = Math.round((product.stockOutCount / totalStockOuts) * 100);
+                      
+                      return (
+                        <div key={product._id} className="p-4 rounded-lg hover:bg-opacity-50 transition-all duration-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <span className={`font-semibold ${darkMode ? "text-white" : "text-blue-900"}`}>{product.brand}</span>
+                              <p className={`text-sm ${darkMode ? "text-white" : "text-blue-600"}`}>{product.description}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"}`}>
+                                {product.stockOutCount}
+                              </span>
+                              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>units out</p>
+                            </div>
+                          </div>
+                          <div className="relative pt-1">
+                            <div className={`overflow-hidden h-2 text-xs flex rounded ${darkMode ? "bg-gray-700" : "bg-blue-100"}`}>
+                              <div
+                                style={{ width: `${percentage}%` }}
+                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 transition-all duration-500"
+                              ></div>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span className={`text-xs ${darkMode ? "text-white" : "text-blue-600"}`}>
+                                Category: {product.category}
+                              </span>
+                              <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>
+                                {percentage}% of total stock-outs
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <span className="text-4xl mb-2">📊</span>
+                    <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-blue-700"}`}>No stock-out data available</p>
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>Stock-out history will appear here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Out of Stock Chart */}
+          <OutOfStockChart products={products} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Products */}
-          <RecentProducts products={stats.recentProducts} />
+          <RecentProducts products={products} />
 
           {/* Low Stock Alerts */}
           <LowStockAlert products={products} />

@@ -6,7 +6,7 @@ class ProductService {
   static const String _emulatorUrl = 'http://10.0.2.2:4000/api';
 
   // URL for Physical Device using your computer's IP address
-  static const String _physicalDeviceUrl = 'http://192.168.0.106:4000/api';
+  static const String _physicalDeviceUrl = 'http://192.168.0.108:4000/api';
 
   // Set this to true when using a physical device
   static const bool _usePhysicalDevice =

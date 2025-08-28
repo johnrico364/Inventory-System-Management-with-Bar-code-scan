@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import JsBarcode from 'jsbarcode';
-
 import { useDarkMode } from '../context/DarkModeContext';
+
 interface ArchivedProduct {
   _id: string;
   brand: string;
@@ -17,11 +17,19 @@ interface ArchivedProduct {
 }
 
 export default function ArchivedProducts() {
+  const { darkMode } = useDarkMode();  // This must be first
+  const [mounted, setMounted] = useState(false);
   const [archivedProducts, setArchivedProducts] = useState<ArchivedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [error, setError] = useState('');
+
+  // Handle client-side hydration
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Fetch archived products from API
   const fetchArchivedProducts = async () => {
@@ -48,8 +56,10 @@ export default function ArchivedProducts() {
   };
 
   useEffect(() => {
-    fetchArchivedProducts();
-  }, []);
+    if (mounted) {
+      fetchArchivedProducts();
+    }
+  }, [mounted]);
 
   // Generate barcodes for archived products dynamically
   const generateBarcodes = () => {
@@ -108,13 +118,11 @@ export default function ArchivedProducts() {
 
   // Generate barcodes whenever archived products change
   useEffect(() => {
-    if (archivedProducts.length > 0) {
-      // Small delay to ensure DOM elements are rendered
-      setTimeout(() => {
-        generateBarcodes();
-      }, 100);
+    if (mounted && archivedProducts.length > 0) {
+      const timer = setTimeout(generateBarcodes, 100);
+      return () => clearTimeout(timer);
     }
-  }, [archivedProducts]);
+  }, [mounted, archivedProducts]);
 
   const filteredArchivedProducts = archivedProducts.filter(product => {
     const matchesSearch = product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -148,13 +156,11 @@ export default function ArchivedProducts() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-blue-800' : 'bg-gray-50'}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
-
-  const { darkMode } = useDarkMode();
 
   return (
     <div className={darkMode ? "min-h-screen bg-gray-900 text-white" : "min-h-screen bg-white"}>

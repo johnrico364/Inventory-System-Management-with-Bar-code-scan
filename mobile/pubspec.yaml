@@ -37,6 +37,7 @@ dependencies:
   mobile_scanner: ^4.0.0
   google_fonts: ^6.1.0
   http: ^1.1.0
+  audioplayers: ^6.5.0
 
 
 dev_dependencies:

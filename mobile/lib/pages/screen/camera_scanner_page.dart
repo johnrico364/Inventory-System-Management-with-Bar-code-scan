@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'quantity_input_page.dart';
 
 class CameraScannerPage extends StatefulWidget {
@@ -15,44 +16,75 @@ class CameraScannerPage extends StatefulWidget {
 class _CameraScannerPageState extends State<CameraScannerPage> {
   MobileScannerController? _controller;
   final Set<String> _scannedBarcodes = {};
-  bool _isInItemMode = true; // true for "in item", false for "out item"
+  bool _isInItemMode = false; // false for "out item", true for "in item"
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
     _controller = MobileScannerController();
+    _loadBeepSound();
+  }
+
+  Future<void> _loadBeepSound() async {
+    try {
+      await _audioPlayer.setSource(AssetSource('sounds/beep.mp3'));
+      await _audioPlayer.setVolume(1.0);
+      print('Beep sound loaded successfully');
+    } catch (e) {
+      print('Error loading beep sound: $e');
+    }
+  }
+
+  Future<void> _playBeepSound() async {
+    try {
+      await _audioPlayer.stop(); // Stop any previous playback
+      await _audioPlayer.setSource(
+        AssetSource('sounds/beep.mp3'),
+      ); // Reset source
+      await _audioPlayer.resume(); // Play the sound
+      print('Playing beep sound');
+    } catch (e) {
+      print('Error playing beep sound: $e');
+    }
   }
 
   @override
   void dispose() {
     _controller?.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   void _onBarcodeDetected(BarcodeCapture capture) {
     final List<Barcode> barcodes = capture.barcodes;
-    
+
     for (final Barcode barcode in barcodes) {
       if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+        // Play the beep sound
+        _playBeepSound();
+
         // Check if this barcode has already been scanned
         if (_scannedBarcodes.contains(barcode.rawValue!)) {
           // Show message that barcode has already been scanned
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Barcode ${barcode.rawValue} has already been scanned'),
+              content: Text(
+                'Barcode ${barcode.rawValue} has already been scanned',
+              ),
               backgroundColor: Colors.orange,
               duration: const Duration(seconds: 2),
             ),
           );
           return; // Skip this scan
         }
-        
+
         // Add to scanned barcodes set to prevent re-scanning
         _scannedBarcodes.add(barcode.rawValue!);
 
         // Pause the scanner before navigating
         _controller?.stop();
-        
+
         // Navigate to quantity input page with the mode
         Navigator.push(
           context,
@@ -66,7 +98,7 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
           // Resume scanning when returning from quantity input page
           _controller?.start();
         });
-        
+
         break; // Only process the first barcode
       }
     }
@@ -86,7 +118,6 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        
         backgroundColor: const Color(0xFF1a237e),
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -153,7 +184,9 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               decoration: BoxDecoration(
-                color: _isInItemMode ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                color: _isInItemMode
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isInItemMode ? Colors.green : Colors.red,
@@ -170,7 +203,9 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isInItemMode ? 'Adding Items to Inventory' : 'Removing Items from Inventory',
+                    _isInItemMode
+                        ? 'Adding Items to Inventory'
+                        : 'Removing Items from Inventory',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -180,7 +215,7 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
                 ],
               ),
             ),
-            
+
             // Camera Preview
             Expanded(
               flex: 2,
@@ -253,10 +288,15 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
                 ),
               ),
             ),
-            
+
             // Info Section
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 80), // Increased bottom margin
+              margin: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                80,
+              ), // Increased bottom margin
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -315,4 +355,4 @@ class _CameraScannerPageState extends State<CameraScannerPage> {
       ),
     );
   }
-} 
+}
