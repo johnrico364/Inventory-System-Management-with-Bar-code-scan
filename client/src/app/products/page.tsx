@@ -51,7 +51,6 @@ export default function Products() {
   // Generate barcode image from backend
   const generateBarcodeImage = async (barcodeNumber: number) => {
     try {
-      console.log("🎨 Generating barcode for:", barcodeNumber);
       const response = await fetch(
         "http://localhost:4000/api/products/generate-barcode",
         {
@@ -68,7 +67,6 @@ export default function Products() {
       }
 
       const result = await response.json();
-      console.log("✅ Barcode generated successfully:", result);
 
       // Add a small delay to ensure the file is fully written
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -83,11 +81,6 @@ export default function Products() {
 
   // Generate barcodes for all products
   const generateAllBarcodes = async () => {
-    console.log(
-      "🎨 Starting barcode generation for",
-      products.length,
-      "products"
-    );
 
     const newBarcodeImages: { [key: string]: string } = {};
 
@@ -105,7 +98,6 @@ export default function Products() {
     }
 
     setBarcodeImages(newBarcodeImages);
-    console.log("🎨 Barcode generation completed");
   };
 
   // Generate barcode for a single product
@@ -745,7 +737,8 @@ export default function Products() {
             >
               <thead className={darkMode ? "bg-gray-800" : "bg-gray-50"}>
                 <tr>
-                  <th
+                  {/* Barcode img */}
+                  {/* <th
                     className={
                       darkMode
                         ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase"
@@ -753,7 +746,7 @@ export default function Products() {
                     }
                   >
                     Barcode
-                  </th>
+                  </th> */}
                   <th
                     className={
                       darkMode
@@ -852,7 +845,8 @@ export default function Products() {
                         darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"
                       }
                     >
-                      <td className="px-6 py-4">
+                      {/* Barcode img */}
+                      {/* <td className="px-6 py-4">                        
                         {barcodeImages[product._id] ? (
                           <img
                             src={barcodeImages[product._id]}
@@ -879,36 +873,32 @@ export default function Products() {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                           </div>
                         )}
-                      </td>
+                      </td> */}
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
                         {product.barcode}
                       </td>
-                      <td className="px-6 py-4">
-                        <div
-                          className={
-                            darkMode
-                              ? "text-sm font-medium text-blue-400 cursor-pointer hover:underline"
-                              : "text-sm font-medium text-blue-700 cursor-pointer hover:underline"
-                          }
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setShowDetails(true);
-                          }}
-                        >
-                          {product.brand}
-                        </div>
+
+                     <td
+                        className={
+                          darkMode
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
+                        }
+                      >
+                        {product.brand}
                       </td>
+
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
                         {product.description}
@@ -916,8 +906,8 @@ export default function Products() {
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
                         {product.category}
@@ -925,8 +915,8 @@ export default function Products() {
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
                         {product.stocks}
@@ -934,20 +924,20 @@ export default function Products() {
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
-                        {product.boxColor || '-'}
+                        {product.boxColor || "-"}
                       </td>
                       <td
                         className={
                           darkMode
-                            ? "px-6 py-4 text-sm text-gray-300"
-                            : "px-6 py-4 text-sm text-blue-800"
+                            ? "px-6 py-8 text-sm text-gray-300"
+                            : "px-6 py-8 text-sm text-blue-800"
                         }
                       >
-                        {product.boxNumber || '-'}
+                        {product.boxNumber || "-"}
                       </td>
                       <td className="px-6 py-4 text-sm text-blue-800">
                         <div className="flex space-x-2">
@@ -1018,7 +1008,6 @@ export default function Products() {
                     </tr>
                   );
                 })}
-
               </tbody>
             </table>
           </div>
