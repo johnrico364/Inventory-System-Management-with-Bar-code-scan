@@ -22,6 +22,7 @@ interface Transaction {
   action: string;
   createdAt: string;
   updatedAt: string;
+  previousStock?: number;
 }
 
 export default function Transaction() {
@@ -70,7 +71,7 @@ export default function Transaction() {
       if (!Array.isArray(data)) {
         throw new Error('Invalid data format received from server');
       }
-      console.log(data);
+
       setTransactions(data);
     } catch (err) {
       console.error('Transaction fetch error:', err);
@@ -282,7 +283,9 @@ export default function Transaction() {
       </div>
 
       {/* Main Content */}
-      <div className={darkMode ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-white" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
+      <div className={`max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 ${
+  darkMode ? "text-white" : ""
+}`}>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
@@ -400,7 +403,11 @@ export default function Transaction() {
         </div>
 
         {/* Transactions Table */}
-        <div className={darkMode ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"}>
+        <div className={`${
+  darkMode 
+    ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" 
+    : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+} max-w-[98vw] mx-auto`}>
           {filteredTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="text-4xl mb-2">📋</span>
@@ -428,6 +435,9 @@ export default function Transaction() {
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Current Stock
+                    </th>
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
+                      Previous Stock
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Box Color
@@ -472,6 +482,11 @@ export default function Transaction() {
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         {typeof transaction.product?.stocks === 'number' ? transaction.product.stocks : 'N/A'}
                       </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+  darkMode ? 'text-gray-300' : 'text-gray-900'
+}`}>
+  {transaction.previousStock ?? 'N/A'}
+</td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         <span className="inline-flex items-center">
                           {transaction.product?.boxColor ? (
