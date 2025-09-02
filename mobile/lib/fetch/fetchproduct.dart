@@ -128,14 +128,12 @@ class ProductService {
       }
 
       // Calculate new quantity
-      int currentQuantity = currentProduct['stocks'] ?? 0; // Use 'stocks' field
+      int currentQuantity = currentProduct['stocks'] ?? 0;
       int newQuantity;
 
       if (isInItem) {
-        // Adding items to inventory
         newQuantity = currentQuantity + quantity;
       } else {
-        // Removing items from inventory
         newQuantity = currentQuantity - quantity;
         if (newQuantity < 0) {
           throw Exception(
@@ -144,9 +142,11 @@ class ProductService {
         }
       }
 
-      // Update the product quantity
+      // Update the product quantity with action
       final updateData = {
-        'stocks': newQuantity, // Send 'stocks' field to match schema
+        'stocks': newQuantity,
+        'action': isInItem ? "Stock in" : "Stock out",
+        'quantity': quantity,
         'lastUpdated': DateTime.now().toIso8601String(),
       };
 
