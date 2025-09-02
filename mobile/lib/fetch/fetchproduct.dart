@@ -147,7 +147,6 @@ class ProductService {
         'stocks': newQuantity,
         'action': isInItem ? "Stock in" : "Stock out",
         'quantity': quantity,
-        'lastUpdated': DateTime.now().toIso8601String(),
       };
 
       final response = await http.put(

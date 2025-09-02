@@ -180,6 +180,8 @@ const updateProductByBarcode = async (req, res) => {
       isDeleted: false,
     });
 
+    const previousStock = product.stocks;
+
     // console.log("Found product:", product);
 
     if (!product) {
@@ -189,7 +191,7 @@ const updateProductByBarcode = async (req, res) => {
 
     // Update the stocks field (not quantity)
     const updateData = {
-      stocks: data.quantity || data.stocks,
+      stocks: data.stocks,
       updatedAt: new Date(),
     };
 
