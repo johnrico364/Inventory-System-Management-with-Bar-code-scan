@@ -29,7 +29,7 @@ export default function Navbar() {
     { href: '/products', label: 'Products', icon: '📦' },
     { href: '/archived', label: 'Archived', icon: '🗂️' },
     { href: '/transaction', label: 'Transaction', icon: '📜' },
-    { href: '/settings', label: 'Settings', icon: '⚙️' },
+    // { href: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 
   return (
