@@ -34,6 +34,8 @@ export default function Transaction() {
   const [selectedAction, setSelectedAction] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "action" | "quantity">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const { darkMode, toggleDarkMode } = useDarkMode();
 
   // Get unique actions for filter dropdown, excluding "Product Update"
@@ -48,6 +50,11 @@ export default function Transaction() {
   useEffect(() => {
     filterAndSortTransactions();
   }, [transactions, searchTerm, selectedAction, sortBy, sortOrder]);
+
+  // Reset to first page when filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedAction, sortBy, sortOrder]);
 
   const fetchTransactions = async () => {
     try {
@@ -233,6 +240,13 @@ export default function Transaction() {
     XLSX.writeFile(wb, `transaction-history-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredTransactions.length / rowsPerPage);
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
@@ -404,10 +418,10 @@ export default function Transaction() {
 
         {/* Transactions Table */}
         <div className={`${
-  darkMode 
-    ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" 
-    : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-} max-w-[98vw] mx-auto`}>
+          darkMode 
+            ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" 
+            : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+        } max-w-[98vw] mx-auto`}>
           {filteredTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="text-4xl mb-2">📋</span>
@@ -454,7 +468,7 @@ export default function Transaction() {
                   </tr>
                 </thead>
                 <tbody className={darkMode ? "bg-gray-900 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}>
-                  {filteredTransactions.map((transaction) => (
+                  {paginatedTransactions.map((transaction) => (
                     <tr key={transaction._id} className={darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"}>
                       <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         <div className="flex items-center">
@@ -513,6 +527,42 @@ export default function Transaction() {
                   ))}
                 </tbody>
               </table>
+              {/* Pagination Controls */}
+              <div className="flex flex-col md:flex-row items-center justify-between gap-2 px-4 py-4">
+                <div>
+                  <span className={darkMode ? "text-gray-300 text-sm" : "text-gray-700 text-sm"}>
+                    Page {currentPage} of {totalPages} | Rows per page:{" "}
+                    <select
+                      value={rowsPerPage}
+                      onChange={e => {
+                        setRowsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="ml-1 px-2 py-1 border rounded text-sm"
+                    >
+                      {[5, 10, 20, 50, 100].map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded ${currentPage === 1 ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-blue-700 text-white hover:bg-blue-800"}`}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className={`px-3 py-1 rounded ${currentPage === totalPages || totalPages === 0 ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-blue-700 text-white hover:bg-blue-800"}`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

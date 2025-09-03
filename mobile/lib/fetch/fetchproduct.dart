@@ -6,7 +6,7 @@ class ProductService {
   static const String _emulatorUrl = 'http://10.0.2.2:4000/api';
 
   // URL for Physical Device using your computer's IP address
-  static const String _physicalDeviceUrl = 'http://192.168.0.108:4000/api';
+  static const String _physicalDeviceUrl = 'http://192.168.0.110:4000/api';
 
   // Set this to true when using a physical device
   static const bool _usePhysicalDevice =
@@ -85,34 +85,34 @@ class ProductService {
 
   // Update product quantity (in/out items)
   // Log transaction
-  static Future<bool> logProductTransaction(
-    String barcode,
-    int quantity,
-    String action,
-    String? remarks,
-  ) async {
-    try {
-      final currentProduct = await fetchProductByBarcode(barcode);
-      if (currentProduct == null) {
-        throw Exception('Product with barcode $barcode not found');
-      }
+  // static Future<bool> logProductTransaction(
+  //   String barcode,
+  //   int quantity,
+  //   String action,
+  //   String? remarks,
+  // ) async {
+  //   try {
+  //     final currentProduct = await fetchProductByBarcode(barcode);
+  //     if (currentProduct == null) {
+  //       throw Exception('Product with barcode $barcode not found');
+  //     }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/products/transaction'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'productId': currentProduct['_id'],
-          'quantity': quantity,
-          'action': action,
-          'remarks': remarks,
-        }),
-      );
+  //     final response = await http.post(
+  //       Uri.parse('$baseUrl/products/transaction'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: json.encode({
+  //         'productId': currentProduct['_id'],
+  //         'quantity': quantity,
+  //         'action': action,
+  //         'remarks': remarks,
+  //       }),
+  //     );
 
-      return response.statusCode == 200;
-    } catch (e) {
-      throw Exception('Error logging transaction: $e');
-    }
-  }
+  //     return response.statusCode == 200;
+  //   } catch (e) {
+  //     throw Exception('Error logging transaction: $e');
+  //   }
+  // }
 
   static Future<bool> updateProductQuantity(
     String barcode,
@@ -128,14 +128,12 @@ class ProductService {
       }
 
       // Calculate new quantity
-      int currentQuantity = currentProduct['stocks'] ?? 0; // Use 'stocks' field
+      int currentQuantity = currentProduct['stocks'] ?? 0;
       int newQuantity;
 
       if (isInItem) {
-        // Adding items to inventory
         newQuantity = currentQuantity + quantity;
       } else {
-        // Removing items from inventory
         newQuantity = currentQuantity - quantity;
         if (newQuantity < 0) {
           throw Exception(
@@ -144,10 +142,11 @@ class ProductService {
         }
       }
 
-      // Update the product quantity
+      // Update the product quantity with action
       final updateData = {
-        'stocks': newQuantity, // Send 'stocks' field to match schema
-        'lastUpdated': DateTime.now().toIso8601String(),
+        'stocks': newQuantity,
+        'action': isInItem ? "Stock in" : "Stock out",
+        'quantity': quantity,
       };
 
       final response = await http.put(
@@ -211,48 +210,48 @@ class ProductService {
   }
 
   // Log inventory transaction
-  static Future<bool> logTransaction(
-    String barcode,
-    int quantity,
-    bool isInItem,
-    String? notes,
-  ) async {
-    try {
-      // First verify the product exists
-      final product = await fetchProductByBarcode(barcode);
-      if (product == null) {
-        throw Exception('Product with barcode $barcode not found');
-      }
+  // static Future<bool> logTransaction(
+  //   String barcode,
+  //   int quantity,
+  //   bool isInItem,
+  //   String? notes,
+  // ) async {
+  //   try {
+  //     // First verify the product exists
+  //     final product = await fetchProductByBarcode(barcode);
+  //     if (product == null) {
+  //       throw Exception('Product with barcode $barcode not found');
+  //     }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/products/transaction'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'barcode': barcode,
-          'quantity': quantity,
-          'type': isInItem ? 'IN' : 'OUT',
-          'timestamp': DateTime.now().toIso8601String(),
-          'notes': notes,
-          'productId': product['_id'], // Include the product ID
-        }),
-      );
+  //     final response = await http.post(
+  //       Uri.parse('$baseUrl/products/transaction'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: json.encode({
+  //         'barcode': barcode,
+  //         'quantity': quantity,
+  //         'type': isInItem ? 'IN' : 'OUT',
+  //         'timestamp': DateTime.now().toIso8601String(),
+  //         'notes': notes,
+  //         'productId': product['_id'], // Include the product ID
+  //       }),
+  //     );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        print('Transaction logged successfully'); // Debug log
-        return true;
-      } else {
-        print(
-          'Failed to log transaction: ${response.statusCode} - ${response.body}',
-        ); // Debug log
-        throw Exception(
-          'Failed to log transaction: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error logging transaction: $e'); // Debug log
-      throw Exception('Error logging transaction: $e');
-    }
-  }
+  //     if (response.statusCode == 201 || response.statusCode == 200) {
+  //       print('Transaction logged successfully'); // Debug log
+  //       return true;
+  //     } else {
+  //       print(
+  //         'Failed to log transaction: ${response.statusCode} - ${response.body}',
+  //       ); // Debug log
+  //       throw Exception(
+  //         'Failed to log transaction: ${response.statusCode} - ${response.body}',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error logging transaction: $e'); // Debug log
+  //     throw Exception('Error logging transaction: $e');
+  //   }
+  // }
 }
 
 // Product model class
