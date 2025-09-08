@@ -86,8 +86,6 @@ const updateProduct = async (req, res) => {
   const data = req.body;
 
   try {
-    console.log("Updating product:", { id, data }); // Debug log
-
     const product = await Product.findById(id);
     if (!product) {
       console.log("Product not found:", id); // Debug log
@@ -95,19 +93,16 @@ const updateProduct = async (req, res) => {
     }
 
     // Handle stock updates
-    if (data.action === "Stock in" || data.action === "Stock out") {
-      console.log("Processing stock update:", {
-        currentStock: product.stocks,
-        action: data.action,
-        quantity: data.quantity,
-      }); // Debug log
+    if (data?.action === "Stock in" || data?.action === "Stock out") {
+      const quantity = parseInt(data?.quantity);
+      const previousStock = product?.stocks;
 
-      const quantity = parseInt(data.quantity);
-      const previousStock = product.stocks;
       const newStocks =
-        data.action === "Stock in"
+        data?.action === "Stock in"
           ? previousStock + quantity
           : previousStock - quantity;
+
+      console.log(newStocks);
 
       if (newStocks < 0) {
         console.log("Invalid stock update - would result in negative stock"); // Debug log
@@ -116,17 +111,16 @@ const updateProduct = async (req, res) => {
 
       // Update the product's stock
       product.stocks = newStocks;
-      const updatedProduct = await product.save();
-      console.log("Product stock updated:", {
-        previousStock,
-        newStocks,
-        productId: product._id,
-      }); // Debug log
+      const updatedProduct = await Product.findByIdAndUpdate(
+        id,
+        { stocks: newStocks },
+        { new: true }
+      );
 
       // Create a transaction record
       const transaction = await Transaction.create({
-        product: product._id,
-        action: data.action,
+        product: product?._id,
+        action: data?.action,
         quantity: quantity,
         previousStock: previousStock,
         currentStock: newStocks,
@@ -157,8 +151,6 @@ const updateProduct = async (req, res) => {
       const updatedProduct = await Product.findByIdAndUpdate(id, data);
       return res.status(200).json({ message: "Product updated successfully" });
     }
-
-    
   } catch (error) {
     return res
       .status(500)
@@ -169,8 +161,7 @@ const updateProduct = async (req, res) => {
 const updateProductByBarcode = async (req, res) => {
   const { barcode } = req.params;
   const data = req.body;
-
-  console.log("Update request received:", { barcode, data });
+  // console.log('Raw', data);
 
   try {
     // Convert barcode to number for comparison
@@ -180,7 +171,9 @@ const updateProductByBarcode = async (req, res) => {
       isDeleted: false,
     });
 
-    console.log("Found product:", product);
+    const previousStock = product.stocks;
+
+    // console.log("Found product:", product);
 
     if (!product) {
       console.log("Product not found for barcode:", barcode);
@@ -189,17 +182,25 @@ const updateProductByBarcode = async (req, res) => {
 
     // Update the stocks field (not quantity)
     const updateData = {
-      stocks: data.quantity || data.stocks,
+      stocks: data.stocks,
       updatedAt: new Date(),
     };
 
-    console.log("Updating product with data:", updateData);
+    // console.log("Updating product with data:", updateData);
 
     const updatedProduct = await Product.findByIdAndUpdate(
       product._id,
       updateData,
       { new: true }
     );
+
+    await Transaction.create({
+      product: product._id,
+      action: data.action,
+      quantity: data.quantity,
+      previousStock: product.stocks,
+      currentStock: data.stocks,
+    });
 
     console.log("Product updated successfully:", updatedProduct);
     return res.status(200).json({
@@ -261,7 +262,8 @@ const restoreProduct = async (req, res) => {
 };
 
 const logTransaction = async (req, res) => {
-  const { barcode, quantity, type, timestamp, notes } = req.body;
+  const { barcode, quantity, type, timestamp, stocks } = req.body;
+  console.log("manual", req.body);
 
   try {
     // Find the product by barcode
@@ -275,13 +277,14 @@ const logTransaction = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    const previousStock = stocks;
     // Create a new transaction record
     const transactionData = {
       product: product._id,
       quantity: quantity,
-      action: type === "IN" ? "Stock In" : "Stock Out",
-      timestamp: timestamp || new Date(),
-      notes: notes,
+      action: type === "IN" ? "Stock in" : "Stock out",
+      previousStock: previousStock,
+      // currentStock:
     };
 
     const transaction = await Transaction.create(transactionData);
@@ -320,7 +323,6 @@ const generateBarcode = async (req, res) => {
   }
 
   const numberStr = number.toString();
-  console.log("🎨 Generating barcode for:", numberStr);
 
   // Ensure barcodes directory exists
   const barcodesDir = "./barcodes";
@@ -349,7 +351,6 @@ const generateBarcode = async (req, res) => {
       } else {
         const filePath = `${barcodesDir}/${numberStr}.png`;
         fs.writeFileSync(filePath, png);
-        console.log("✅ Barcode generated successfully:", filePath);
         res.status(200).json({
           message: "Barcode generated successfully",
           filePath: filePath,

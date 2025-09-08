@@ -1,8 +1,8 @@
+import 'homepage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'homepage.dart';
 import '../../../fetch/fetchproduct.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class QuantityInputPage extends StatefulWidget {
   final String barcode;
@@ -183,16 +183,16 @@ class _QuantityInputPageState extends State<QuantityInputPage> {
       }
 
       // Log the transaction
-      final transactionSuccess = await ProductService.logTransaction(
-        widget.barcode,
-        _quantity,
-        widget.isInItemMode,
-        null,
-      );
+      // final transactionSuccess = await ProductService.logTransaction(
+      //   widget.barcode,
+      //   _quantity,
+      //   widget.isInItemMode,
+      //   null,
+      // );
 
-      if (!transactionSuccess) {
-        throw Exception('Failed to log transaction');
-      }
+      // if (!transactionSuccess) {
+      //   throw Exception('Failed to log transaction');
+      // }
 
       // Get the updated product data after the transaction
       final updatedProduct = await ProductService.fetchProductByBarcode(
