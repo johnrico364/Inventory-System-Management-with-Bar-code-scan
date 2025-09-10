@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
 const cors = require("cors");
+require('dotenv').config();
 
 // routes imports
 const productsRoutes = require("./routes/productRoutes");
@@ -11,10 +12,10 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000', // Allow your Next.js frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  credentials: true // Allow credentials
+  origin: process.env.CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -22,16 +23,11 @@ app.use(express.json());
 // Serve static files from barcodes directory
 app.use('/barcodes', express.static(path.join(__dirname, 'barcodes')));
 
-// mongodb+srv://john:John2004@personalproject.fkzdsfo.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=PersonalProject
-// mongodb://localhost:27017/inventory_system
-
-const _dbURI = "mongodb+srv://john:John2004@personalproject.fkzdsfo.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=PersonalProject";
-
-mongoose.connect(_dbURI).then((result) => {
-  console.log("Connected to Local MongoDB");
+mongoose.connect(process.env.MONGODB_URI).then(() => {
+  console.log("Connected to MongoDB");
 });
 
-app.listen(4000, () => console.log("Listening on port 4000"));
+app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
 
 app.use("/api/products", productsRoutes);
 app.use('/api/transactions', transactionRoutes);
