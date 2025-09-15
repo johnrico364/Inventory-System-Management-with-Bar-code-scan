@@ -74,7 +74,7 @@ export default function Dashboard() {
       setLoading(true);
       setError('');
       console.log('📡 Fetching products for dashboard...');
-      const response = await fetch('http://localhost:4000/api/products/get');
+      const response = await fetch('https://mom-inventory.vercel.app/api/products/get');
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -124,7 +124,7 @@ export default function Dashboard() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/transactions/get');
+      const response = await fetch('https://mom-inventory.vercel.app/api/transactions/get');
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

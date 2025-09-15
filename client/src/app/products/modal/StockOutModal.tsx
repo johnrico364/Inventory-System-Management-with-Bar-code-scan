@@ -33,7 +33,7 @@ export default function StockOutModal({ isOpen, onClose, product, onStockUpdated
         throw new Error('Stock out quantity cannot exceed current stock');
       }
 
-      const response = await fetch(`http://localhost:4000/api/products/update/${product._id}`, {
+      const response = await fetch(`https://mom-inventory.vercel.app/api/products/update/${product._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

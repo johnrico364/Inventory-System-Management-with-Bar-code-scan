@@ -60,7 +60,7 @@ export default function DeleteProductModal({
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/products/archive/${product._id}`,
+        `https://mom-inventory.vercel.app/api/products/archive/${product._id}`,
         {
           method: "PATCH",
           headers: {

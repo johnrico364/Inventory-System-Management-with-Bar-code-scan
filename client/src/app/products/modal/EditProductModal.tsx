@@ -201,7 +201,7 @@ export default function EditProductModal({
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/products/update/${product!._id}`,
+        `https://mom-inventory.vercel.app/api/products/update/${product!._id}`,
         {
           method: "PATCH",
           headers: {
@@ -241,7 +241,7 @@ export default function EditProductModal({
         (err as Error).message.includes("Failed to fetch")
       ) {
         console.error("🔌 Network Error - Possible causes:");
-        console.error("   - Server not running on localhost:4000");
+        console.error("   - Server not running on mom-inventory.vercel.app");
         console.error("   - CORS issues");
         console.error("   - Network connectivity problems");
         console.error("   - Firewall blocking the request");

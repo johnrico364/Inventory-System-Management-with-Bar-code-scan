@@ -63,7 +63,7 @@ export default function Transaction() {
       setError(null); // Clear any previous errors
 
       console.log('Fetching transactions...');
-      const response = await fetch("http://localhost:4000/api/transactions/get", {
+      const response = await fetch("https://mom-inventory.vercel.app/api/transactions/get", {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

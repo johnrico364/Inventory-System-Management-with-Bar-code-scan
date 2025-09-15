@@ -27,7 +27,7 @@ export default function StockInModal({ isOpen, onClose, product, onStockUpdated 
         quantity: parseInt(quantity)
       });
 
-      const response = await fetch(`http://localhost:4000/api/products/update/${product._id}`, {
+      const response = await fetch(`https://mom-inventory.vercel.app/api/products/update/${product._id}`, {
         method: 'PATCH',  // Changed from PUT to PATCH to match server route
         headers: {
           'Content-Type': 'application/json',

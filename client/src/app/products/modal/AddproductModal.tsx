@@ -73,13 +73,19 @@ export default function AddProductModal({
     if (name === "description" && value.trim()) {
       try {
         const response = await fetch(
-          `http://localhost:4000/api/products/check-description?description=${encodeURIComponent(
+          `https://mom-inventory.vercel.app/api/products/check-description?description=${encodeURIComponent(
             value.trim()
           )}`
         );
+        
+        console.log("Description check response:", response.status, response.statusText);
+        
         if (!response.ok) {
-          throw new Error("Failed to check description uniqueness");
+          console.warn(`Description check failed: ${response.status} ${response.statusText}`);
+          // Don't throw error, just skip validation to avoid blocking user input
+          return;
         }
+        
         const data = await response.json();
         if (data.exists) {
           setValidationErrors((prev) => ({
@@ -95,6 +101,7 @@ export default function AddProductModal({
         }
       } catch (err) {
         console.error("Error checking description uniqueness:", err);
+        // Don't block user input if API is unavailable
       }
     }
   };
@@ -115,16 +122,21 @@ export default function AddProductModal({
     if (formData.description.trim()) {
       try {
         const response = await fetch(
-          `http://localhost:4000/api/products/check-description?description=${encodeURIComponent(
+          `https://mom-inventory.vercel.app/api/products/check-description?description=${encodeURIComponent(
             formData.description.trim()
           )}`
         );
+        
+        console.log("Form validation description check:", response.status, response.statusText);
+        
         if (!response.ok) {
-          throw new Error("Failed to check description uniqueness");
-        }
-        const data = await response.json();
-        if (data.exists) {
-          errors.description = "A product with this description already exists";
+          console.warn(`Form validation description check failed: ${response.status} ${response.statusText}`);
+          // Skip description uniqueness validation if API is unavailable
+        } else {
+          const data = await response.json();
+          if (data.exists) {
+            errors.description = "A product with this description already exists";
+          }
         }
       } catch (err) {
         console.error("Error checking description uniqueness:", err);
@@ -206,7 +218,7 @@ export default function AddProductModal({
     };
 
     try {
-      const response = await fetch("http://localhost:4000/api/products/add", {
+      const response = await fetch("https://mom-inventory.vercel.app/api/products/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -264,7 +276,7 @@ export default function AddProductModal({
         (err as Error).message.includes("Failed to fetch")
       ) {
         console.error("🔌 Network Error - Possible causes:");
-        console.error("   - Server not running on localhost:4000");
+        console.error("   - Server not running on mom-inventory.vercel.app");
         console.error("   - CORS issues");
         console.error("   - Network connectivity problems");
         console.error("   - Firewall blocking the request");
