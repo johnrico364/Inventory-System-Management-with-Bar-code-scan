@@ -8,7 +8,7 @@ class ProductService {
   // URL for Physical Device using your computer's IP address
   // static const String _physicalDeviceUrl = 'http://192.168.0.110:4000/api';
   static const String _physicalDeviceUrl =
-      'https://mom-trading-api.onrender.com/api';
+      'https://mom-inventory.vercel.app/api';
 
   // Set this to true when using a physical device
   static const bool _usePhysicalDevice =
