@@ -37,7 +37,7 @@ export default function ArchivedProducts() {
       setLoading(true);
       setError('');
       console.log('📡 Fetching archived products from API...');
-      const response = await fetch('http://localhost:4000/api/products/archived');
+      const response = await fetch('https://mom-inventory.vercel.app/api/products/archived');
       console.log('📥 Archived products response:', response.status, response.statusText);
       
       if (!response.ok) {
@@ -137,7 +137,7 @@ export default function ArchivedProducts() {
     console.log('🔄 Restoring product:', productId);
     
     try {
-      const response = await fetch(`http://localhost:4000/api/products/restore/${productId}`, {
+      const response = await fetch(`https://mom-inventory.vercel.app/api/products/restore/${productId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

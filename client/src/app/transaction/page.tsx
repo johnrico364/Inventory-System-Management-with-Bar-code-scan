@@ -23,6 +23,7 @@ interface Transaction {
   createdAt: string;
   updatedAt: string;
   previousStock?: number;
+  currentStock: number
 }
 
 export default function Transaction() {
@@ -60,9 +61,9 @@ export default function Transaction() {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
-      
+
       console.log('Fetching transactions...');
-      const response = await fetch("http://localhost:4000/api/transactions/get", {
+      const response = await fetch("https://mom-inventory.vercel.app/api/transactions/get", {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -73,7 +74,7 @@ export default function Transaction() {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.message || `Server responded with status ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (!Array.isArray(data)) {
         throw new Error('Invalid data format received from server');
@@ -110,7 +111,7 @@ export default function Transaction() {
     // Sort transactions
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case "date":
           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -153,10 +154,10 @@ export default function Transaction() {
   const downloadExcel = () => {
     // Calculate summary data
     const totalStockIn = transactions
-      .filter(t => t.action === 'Stock In')
+      .filter(t => t.action === 'Stock in')
       .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
     const totalStockOut = transactions
-      .filter(t => t.action === 'Stock Out')
+      .filter(t => t.action === 'Stock out')
       .reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0);
 
     // Prepare worksheet data with summary at the top
@@ -249,9 +250,8 @@ export default function Transaction() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        darkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className={`mt-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading transactions...</p>
@@ -297,9 +297,8 @@ export default function Transaction() {
       </div>
 
       {/* Main Content */}
-      <div className={`max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 ${
-  darkMode ? "text-white" : ""
-}`}>
+      <div className={`max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 ${darkMode ? "text-white" : ""
+        }`}>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
@@ -311,13 +310,13 @@ export default function Transaction() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-blue-800 rounded-2xl shadow-xl border border-blue-800 p-6">
             <div className="flex items-center">
               <div className="text-2xl mr-3">📦</div>
               <div>
                 <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Total Stock Out</p>
-                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock Out').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock out').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
               </div>
             </div>
           </div>
@@ -326,7 +325,7 @@ export default function Transaction() {
               <div className="text-2xl mr-3">📈</div>
               <div>
                 <p className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-1">Total Stock In</p>
-                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock In').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
+                <p className="text-3xl font-extrabold text-white mt-1 drop-shadow-lg">{transactions.filter(t => t.action === 'Stock in').reduce((sum, t) => sum + (typeof t.quantity === 'number' ? t.quantity : 0), 0)}</p>
               </div>
             </div>
           </div>
@@ -417,18 +416,17 @@ export default function Transaction() {
         </div>
 
         {/* Transactions Table */}
-        <div className={`${
-          darkMode 
-            ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden" 
+        <div className={`${darkMode
+            ? "bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden"
             : "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-        } max-w-[98vw] mx-auto`}>
+          } max-w-[98vw] mx-auto`}>
           {filteredTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="text-4xl mb-2">📋</span>
               <p className={darkMode ? "text-gray-300 text-base font-semibold" : "text-blue-700 text-base font-semibold"}>No transactions found</p>
               <p className={darkMode ? "text-gray-400 text-xs" : "text-blue-600 text-xs"}>
-                {transactions.length === 0 
-                  ? "No transactions have been recorded yet." 
+                {transactions.length === 0
+                  ? "No transactions have been recorded yet."
                   : "Try adjusting your search or filter criteria."
                 }
               </p>
@@ -445,13 +443,13 @@ export default function Transaction() {
                       Action
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
+                      Previous Stock
+                    </th>
+                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Quantity
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Current Stock
-                    </th>
-                    <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
-                      Previous Stock
                     </th>
                     <th className={darkMode ? "px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase" : "px-6 py-3 text-left text-xs font-semibold text-blue-800 uppercase"}>
                       Box Color
@@ -491,22 +489,21 @@ export default function Transaction() {
                         </span>
                       </td>
                       <td className={darkMode ? "px-6 py-4 whitespace-nowrap text-sm text-gray-300" : "px-6 py-4 whitespace-nowrap text-sm text-blue-900"}>
-                        {transaction.quantity}
+                        {transaction.previousStock}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                        {typeof transaction.product?.stocks === 'number' ? transaction.product.stocks : 'N/A'}
+                       {transaction.quantity}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-  darkMode ? 'text-gray-300' : 'text-gray-900'
-}`}>
-  {transaction.previousStock ?? 'N/A'}
-</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'
+                        }`}>
+                        {transaction.currentStock ?? 'N/A'}
+                      </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         <span className="inline-flex items-center">
                           {transaction.product?.boxColor ? (
                             <>
-                              <div 
-                                className="w-4 h-4 rounded-full mr-2" 
+                              <div
+                                className="w-4 h-4 rounded-full mr-2"
                                 style={{ backgroundColor: transaction.product.boxColor }}
                               />
                               {transaction.product.boxColor}
@@ -569,7 +566,7 @@ export default function Transaction() {
 
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button 
+          <button
             aria-label="Download Excel"
             onClick={downloadExcel}
             disabled={transactions.length === 0}
@@ -579,7 +576,7 @@ export default function Transaction() {
             <h3 className="font-medium text-white">Download Excel</h3>
             <p className="text-sm text-blue-100">Export transaction history</p>
           </button>
-          <button 
+          <button
             aria-label="Refresh Transactions"
             onClick={fetchTransactions}
             className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
