@@ -15,8 +15,8 @@ interface Product {
   description: string;
   category: string;
   stocks: number;
-  boxColor?: string;
-  boxNumber?: string;
+  boxColor: string;
+  boxNumber: string;
   status: "in-stock" | "low-stock" | "out-of-stock";
   lastUpdated: string;
 };
@@ -71,6 +71,7 @@ export default function Products() {
       return null;
     }
   };
+;
 
   // Generate barcodes for all products
   const generateAllBarcodes = async () => {
@@ -1209,7 +1210,7 @@ export default function Products() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onProductDeleted={handleProductDeleted}
-        product={selectedProduct}
+        product={selectedProduct || null}
       />
 
       {/* Product Details Modal */}
