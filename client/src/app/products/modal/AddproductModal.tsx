@@ -337,11 +337,11 @@ export default function AddProductModal({
   });
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {showConfirmation ? (
         // Confirmation Dialog
         <div
-          className={`p-6 border w-96 shadow-lg rounded-md ${
+          className={`p-6 border w-full max-w-md shadow-lg rounded-md ${
             darkMode ? "bg-gray-800" : "bg-white"
           }`}
         >
@@ -498,30 +498,32 @@ export default function AddProductModal({
       ) : (
         // Main Form
         <div
-          className={`p-5 border w-96 shadow-lg rounded-md ${
-            darkMode ? "bg-gray-800" : "bg-white"
+          className={`w-full max-w-lg shadow-xl rounded-2xl max-h-[90vh] overflow-y-auto border-2 ${
+            darkMode ? "bg-gray-800 border-blue-900" : "bg-white border-blue-200"
           }`}
         >
-          <div className="mt-3">
-            <div className="flex justify-between items-center mb-4">
-              <h3
-                className={`text-lg font-medium ${
-                  darkMode ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Add New Product
-              </h3>
-              <button
-                onClick={handleClose}
-                className={`${
-                  darkMode
-                    ? "text-gray-300 hover:text-gray-100"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                ✕
-              </button>
+          {/* Modal Header */}
+          <div className={darkMode ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 rounded-t-2xl" : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 rounded-t-2xl"}>
+            <div className="px-6 py-4">
+              <div className="flex justify-center items-center relative">
+                <div className="flex items-center gap-3">
+                  <div className={darkMode ? "w-1.5 h-6 bg-blue-400 rounded-r-lg" : "w-1.5 h-6 bg-blue-300 rounded-r-lg"}></div>
+                  <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                    Add New Product
+                  </h3>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="absolute right-0 p-2 rounded-full border-2 border-blue-400 bg-gray-800 hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-6">
 
             {error && (
               <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -540,7 +542,8 @@ export default function AddProductModal({
                 >
                   Category *
                 </label>
-                <select
+                <input
+                  type="text"
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
@@ -553,13 +556,11 @@ export default function AddProductModal({
                       : "border-gray-300"
                   } ${
                     darkMode
-                      ? "bg-gray-700 text-white"
-                      : "bg-white text-gray-900"
+                      ? "bg-gray-700 text-white placeholder-gray-400"
+                      : "bg-white text-gray-900 placeholder-gray-500"
                   }`}
-                >
-                  <option value="">Select category</option>
-                  <option value="bearing">Bearing</option>
-                </select>
+                  placeholder="Enter category"
+                />
                 {validationErrors.category && (
                   <p className="text-red-500 text-xs mt-1">
                     {validationErrors.category}
@@ -773,14 +774,18 @@ export default function AddProductModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 ${
+                    darkMode 
+                      ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600" 
+                      : "text-gray-700 bg-gray-100 border-gray-300 hover:bg-gray-200"
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !isFormValid()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-800 border-2 border-blue-900 rounded-lg hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? "Adding..." : "Add Product"}
                 </button>

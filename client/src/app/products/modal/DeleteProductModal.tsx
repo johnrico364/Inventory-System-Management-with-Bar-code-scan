@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDarkMode } from "../../context/DarkModeContext";
 
 interface DeleteProductModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function DeleteProductModal({
   onProductDeleted,
   product,
 }: DeleteProductModalProps) {
+  const { darkMode } = useDarkMode();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -91,40 +93,69 @@ export default function DeleteProductModal({
   if (!isOpen || !product) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {showConfirmation ? (
         // Final Confirmation Dialog
-        <div className="p-6 border w-96 shadow-lg rounded-md bg-white">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-              <svg
-                className="h-6 w-6 text-red-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
+        <div
+          className={`w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl rounded-2xl border-2 ${
+            darkMode ? "bg-gray-800 border-red-800" : "bg-white border-red-200"
+          }`}
+        >
+          {/* Header */}
+          <div className={`px-6 py-4 rounded-t-2xl ${
+            darkMode 
+              ? "bg-gradient-to-r from-red-950 via-red-900 to-red-800" 
+              : "bg-gradient-to-r from-red-900 via-red-800 to-red-700"
+          }`}>
+            <div className="flex items-center space-x-3">
+              <div className="w-1.5 h-6 bg-red-400 rounded-r-lg"></div>
+              <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                Final Confirmation
+              </h3>
             </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="text-center">
+              <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 ${
+                darkMode ? "bg-red-900" : "bg-red-100"
+              }`}>
+                <svg
+                  className={`h-6 w-6 ${
+                    darkMode ? "text-red-400" : "text-red-600"
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <p className={`text-sm mb-6 ${
+                darkMode ? "text-gray-300" : "text-gray-600"
+              }`}>
+                Are you absolutely sure you want to archive this product? This
+                action cannot be undone immediately.
+              </p>
 
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Final Confirmation
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Are you absolutely sure you want to archive this product? This
-              action cannot be undone immediately.
-            </p>
-
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <h4 className="text-sm font-medium text-red-900 mb-2">
-                Product to Archive:
-              </h4>
-              <div className="text-sm text-red-800 space-y-1">
+              <div className={`border rounded-lg p-4 mb-6 ${
+                darkMode 
+                  ? "bg-red-950 border-red-800" 
+                  : "bg-red-50 border-red-200"
+              }`}>
+                <h4 className={`text-sm font-medium mb-2 ${
+                  darkMode ? "text-red-300" : "text-red-900"
+                }`}>
+                  Product to Archive:
+                </h4>
+                <div className={`text-sm space-y-1 ${
+                  darkMode ? "text-red-200" : "text-red-800"
+                }`}>
                 <p>
                   <span className="font-medium">Brand:</span> {product!.brand}
                 </p>
@@ -142,39 +173,59 @@ export default function DeleteProductModal({
               </div>
             </div>
 
-            <div className="flex justify-center space-x-3">
-              <button
-                type="button"
-                onClick={() => setShowConfirmation(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                Yes, Archive Product
-              </button>
+              <div className="flex justify-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmation(false)}
+                  className={`px-6 py-3 text-sm font-semibold border-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                    darkMode
+                      ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600 focus:ring-gray-500"
+                      : "text-gray-700 bg-gray-100 border-gray-300 hover:bg-gray-200 focus:ring-gray-400"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-6 py-3 text-sm font-semibold text-white bg-red-700 border-2 border-red-800 rounded-xl hover:bg-red-800 transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Yes, Archive Product
+                </button>
+              </div>
             </div>
           </div>
         </div>
       ) : (
         // Main Delete Dialog
-        <div className="p-5 border w-96 shadow-lg rounded-md bg-white">
-          <div className="mt-3">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Archive Product
-              </h3>
+        <div
+          className={`w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl rounded-2xl border-2 ${
+            darkMode ? "bg-gray-800 border-red-800" : "bg-white border-red-200"
+          }`}
+        >
+          {/* Header */}
+          <div className={`px-6 py-4 rounded-t-2xl ${
+            darkMode 
+              ? "bg-gradient-to-r from-red-950 via-red-900 to-red-800" 
+              : "bg-gradient-to-r from-red-900 via-red-800 to-red-700"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-1.5 h-6 bg-red-400 rounded-r-lg"></div>
+                <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                  Archive Product
+                </h3>
+              </div>
               <button
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-white hover:text-red-200 transition-colors p-2 rounded-lg border border-red-600 hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400"
               >
                 ✕
               </button>
             </div>
+          </div>
+          
+          <div className="p-6">
 
             {error && (
               <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -183,11 +234,17 @@ export default function DeleteProductModal({
             )}
 
             <div className="mb-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className={`border rounded-lg p-4 mb-4 ${
+                darkMode 
+                  ? "bg-yellow-950 border-yellow-800" 
+                  : "bg-yellow-50 border-yellow-200"
+              }`}>
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg
-                      className="h-5 w-5 text-yellow-400"
+                      className={`h-5 w-5 ${
+                        darkMode ? "text-yellow-300" : "text-yellow-400"
+                      }`}
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -199,10 +256,14 @@ export default function DeleteProductModal({
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
+                    <h3 className={`text-sm font-medium ${
+                      darkMode ? "text-yellow-200" : "text-yellow-800"
+                    }`}>
                       Are you sure you want to archive this product?
                     </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
+                    <div className={`mt-2 text-sm ${
+                      darkMode ? "text-yellow-300" : "text-yellow-700"
+                    }`}>
                       <p>
                         This product will be moved to the archived section. You
                         can restore it later from the archived products page.
@@ -212,11 +273,17 @@ export default function DeleteProductModal({
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
+              <div className={`rounded-lg p-4 ${
+                darkMode ? "bg-gray-700" : "bg-gray-50"
+              }`}>
+                <h4 className={`text-sm font-medium mb-2 ${
+                  darkMode ? "text-white" : "text-gray-900"
+                }`}>
                   Product Details:
                 </h4>
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className={`text-sm space-y-1 ${
+                  darkMode ? "text-gray-300" : "text-gray-600"
+                }`}>
                   <p>
                     <span className="font-medium">Brand:</span> {product.brand}
                   </p>
@@ -240,12 +307,16 @@ export default function DeleteProductModal({
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
                 onClick={handleClose}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-6 py-3 text-sm font-semibold border-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  darkMode
+                    ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600 focus:ring-gray-500"
+                    : "text-gray-700 bg-gray-100 border-gray-300 hover:bg-gray-200 focus:ring-gray-400"
+                }`}
               >
                 Cancel
               </button>
@@ -253,7 +324,7 @@ export default function DeleteProductModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 text-sm font-semibold text-white bg-red-700 border-2 border-red-800 rounded-xl hover:bg-red-800 transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Archiving..." : "Archive Product"}
               </button>

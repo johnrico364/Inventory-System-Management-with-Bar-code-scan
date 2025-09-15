@@ -601,33 +601,41 @@ export default function Dashboard() {
             </div>
             <div className="h-[400px] overflow-y-auto custom-scrollbar">
               <div className="space-y-4 pr-2">
-                {transactions.length > 0 ? (
-                  [...products]
-                    .map(product => ({
+                {(() => {
+                  // Calculate stock-out frequency for each product
+                  const stockOutData = products.map(product => {
+                    const stockOutTransactions = transactions.filter(t => 
+                      t.product && t.product._id === product._id && 
+                      (t.action === 'Stock Out' || t.action === 'stock_out' || t.action.toLowerCase().includes('out'))
+                    );
+                    const totalStockOut = stockOutTransactions.reduce((sum, t) => sum + (t.quantity || 0), 0);
+                    const transactionCount = stockOutTransactions.length;
+                    
+                    return {
                       ...product,
-                      stockOutCount: transactions.filter(t => 
-                        t.product?._id === product._id && 
-                        t.action === 'Stock Out'
-                      ).reduce((sum, t) => sum + (t.quantity || 0), 0)
-                    }))
-                    .filter(product => product.stockOutCount > 0)
-                    .sort((a, b) => b.stockOutCount - a.stockOutCount)
-                    .map(product => {
-                      const totalStockOuts = transactions
-                        .filter(t => t.action === 'Stock Out')
-                        .reduce((sum, t) => sum + (t.quantity || 0), 0);
-                      const percentage = Math.round((product.stockOutCount / totalStockOuts) * 100);
+                      totalStockOut,
+                      transactionCount
+                    };
+                  }).filter(item => item.totalStockOut > 0)
+                    .sort((a, b) => b.totalStockOut - a.totalStockOut)
+                    .slice(0, 10);
+
+                  const maxStockOut = stockOutData.length > 0 ? Math.max(...stockOutData.map(item => item.totalStockOut)) : 0;
+
+                  return stockOutData.length > 0 ? (
+                    stockOutData.map((product, index) => {
+                      const percentage = maxStockOut > 0 ? Math.round((product.totalStockOut / maxStockOut) * 100) : 0;
                       
                       return (
                         <div key={product._id} className="p-4 rounded-lg hover:bg-opacity-50 transition-all duration-200">
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <span className={`font-semibold ${darkMode ? "text-white" : "text-blue-900"}`}>{product.brand}</span>
-                              <p className={`text-sm ${darkMode ? "text-white" : "text-blue-600"}`}>{product.description}</p>
+                              <p className={`text-sm ${darkMode ? "text-gray-300" : "text-blue-600"}`}>{product.description}</p>
                             </div>
                             <div className="text-right">
-                              <span className={`text-lg font-bold ${darkMode ? "text-white" : "text-blue-900"}`}>
-                                {product.stockOutCount}
+                              <span className={`text-lg font-bold ${darkMode ? "text-red-400" : "text-red-600"}`}>
+                                {product.totalStockOut}
                               </span>
                               <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>units out</p>
                             </div>
@@ -636,28 +644,29 @@ export default function Dashboard() {
                             <div className={`overflow-hidden h-2 text-xs flex rounded ${darkMode ? "bg-gray-700" : "bg-blue-100"}`}>
                               <div
                                 style={{ width: `${percentage}%` }}
-                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 transition-all duration-500"
+                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-red-600 transition-all duration-500"
                               ></div>
                             </div>
                             <div className="flex justify-between mt-1">
-                              <span className={`text-xs ${darkMode ? "text-white" : "text-blue-600"}`}>
-                                Category: {product.category}
+                              <span className={`text-xs ${darkMode ? "text-gray-300" : "text-blue-600"}`}>
+                                Category: {product.category} • {product.transactionCount} transactions
                               </span>
                               <span className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>
-                                {percentage}% of total stock-outs
+                                Current stock: {product.stocks}
                               </span>
                             </div>
                           </div>
                         </div>
                       );
                     })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6">
-                    <span className="text-4xl mb-2">📊</span>
-                    <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-blue-700"}`}>No stock-out data available</p>
-                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>Stock-out history will appear here</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <span className="text-4xl mb-2">📊</span>
+                      <p className={`text-base font-semibold ${darkMode ? "text-gray-300" : "text-blue-700"}`}>No stock-out transactions found</p>
+                      <p className={`text-xs ${darkMode ? "text-gray-400" : "text-blue-600"}`}>Stock-out history will appear here when transactions occur</p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
