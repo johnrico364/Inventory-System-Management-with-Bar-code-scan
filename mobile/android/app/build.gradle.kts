@@ -6,21 +6,21 @@ plugins {
 }
 
 configurations.all {
-    resolutionStrategy {
-        force("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-common:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22")
-        force("androidx.core:core-ktx:1.12.0")
-        force("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-        force("org.jetbrains.kotlin:kotlin-bom:1.8.22")
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
+            force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10")
+            force("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
+            force("androidx.core:core-ktx:1.12.0")
+            force("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+            force("org.jetbrains.kotlin:kotlin-bom:1.9.10")
     }
 }
 
 android {
     namespace = "com.example.mobile"
-    compileSdk = 35
+        compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {

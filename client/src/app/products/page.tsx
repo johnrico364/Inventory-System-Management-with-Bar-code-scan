@@ -15,8 +15,8 @@ interface Product {
   description: string;
   category: string;
   stocks: number;
-  boxColor?: string;
-  boxNumber?: string;
+  boxColor: string;
+  boxNumber: string;
   status: "in-stock" | "low-stock" | "out-of-stock";
   lastUpdated: string;
 };
@@ -51,39 +51,31 @@ export default function Products() {
   };
 
   // Generate barcode image from backend
-  const generateBarcodeImage = async (barcodeNumber: number) => {
+  const fetchBarcodeImage = async (barcodeNumber: number) => {
     try {
-      const response = await fetch(
-        "http://localhost:4000/api/products/generate-barcode",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ number: barcodeNumber.toString() }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      console.log("🔄 Fetching barcode image for:", barcodeNumber);
+      const imageUrl = `https://mom-inventory.vercel.app/barcodes/${barcodeNumber}.png`;
+      
+      // Check if the barcode image exists
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      
+      if (response.ok) {
+        console.log("✅ Barcode image found:", imageUrl);
+        return imageUrl;
+      } else {
+        console.warn(`⚠️ Barcode image not found for ${barcodeNumber}: HTTP ${response.status}`);
+        return null;
       }
-
-      const result = await response.json();
-
-      // Add a small delay to ensure the file is fully written
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Return the path to the generated barcode image
-      return `http://localhost:4000/barcodes/${barcodeNumber}.png`;
     } catch (error) {
-      console.error("❌ Error generating barcode:", error);
+      console.error("❌ Error fetching barcode image:", error);
       return null;
     }
   };
+;
 
   // Generate barcodes for all products
   const generateAllBarcodes = async () => {
-
+    console.log("🎨 Starting barcode generation for all products...");
     const newBarcodeImages: { [key: string]: string } = {};
 
     for (const product of products) {
@@ -93,13 +85,22 @@ export default function Products() {
         continue;
       }
 
-      const barcodeImageUrl = await generateBarcodeImage(product.barcode);
-      if (barcodeImageUrl) {
-        newBarcodeImages[product._id] = barcodeImageUrl;
+      try {
+        const barcodeImageUrl = await fetchBarcodeImage(product.barcode);
+        if (barcodeImageUrl) {
+          newBarcodeImages[product._id] = barcodeImageUrl;
+          console.log(`✅ Generated barcode for ${product.brand}`);
+        } else {
+          console.log(`⚠️ Skipped barcode generation for ${product.brand}`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to generate barcode for ${product.brand}:`, error);
+        // Continue with other products even if one fails
       }
     }
 
     setBarcodeImages(newBarcodeImages);
+    console.log("🏁 Barcode generation completed");
   };
 
   // Generate barcode for a single product
@@ -109,7 +110,7 @@ export default function Products() {
       product.brand,
       `(attempt ${retryCount + 1})`
     );
-    const barcodeImageUrl = await generateBarcodeImage(product.barcode);
+    const barcodeImageUrl = await fetchBarcodeImage(product.barcode);
     if (barcodeImageUrl) {
       setBarcodeImages((prev) => ({
         ...prev,
@@ -133,7 +134,7 @@ export default function Products() {
       setLoading(true);
       setError("");
       console.log("📡 Fetching products from API...");
-      const response = await fetch("http://localhost:4000/api/products/get");
+      const response = await fetch("https://mom-inventory.vercel.app/api/products/get");
       console.log(
         "📥 Products response:",
         response.status,
@@ -292,17 +293,33 @@ export default function Products() {
   };
 
   // Print barcode label
-  const handlePrintBarcode = (product: Product) => {
+  const handlePrintBarcode = async (product: Product) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       alert("Please allow popups to print barcode labels");
       return;
     }
 
-    const barcodeImageUrl = barcodeImages[product._id];
+    let barcodeImageUrl = barcodeImages[product._id];
+    
+    // If barcode image doesn't exist, try to generate it
     if (!barcodeImageUrl) {
-      alert("Barcode image not available. Please wait for it to load.");
-      return;
+      console.log("🔄 Barcode not found, attempting to generate...");
+      const generatedUrl = await fetchBarcodeImage(product.barcode);
+      
+      if (generatedUrl) {
+        barcodeImageUrl = generatedUrl;
+        // Update the barcodeImages state with the new image
+        setBarcodeImages(prev => ({
+          ...prev,
+          [product._id]: generatedUrl
+        }));
+      }
+    }
+
+    // If still no barcode image, use a fallback or text-based barcode
+    if (!barcodeImageUrl) {
+      console.warn("⚠️ Using fallback barcode display");
     }
 
     const printContent = `
@@ -375,7 +392,33 @@ export default function Products() {
               <div class="description">${product.description}</div>
               <div class="category">${product.category}</div>
             </div>
-            <img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />
+            ${barcodeImageUrl 
+              ? `<img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />` 
+              : `<div class="barcode-fallback" style="border: 2px solid #000; padding: 10px; margin: 10px 0; text-align: center;">
+                   <div class="barcode-bars" style="display: flex; justify-content: center; align-items: end; height: 60px; margin-bottom: 5px;">
+                     ${(() => {
+                       const barcode = product.barcode.toString();
+                       const patterns = ['101', '110100', '100110', '111010', '011001', '101001', '001011', '010011', '110001', '100011'];
+                       let bars = '101'; // Start pattern
+                       
+                       for (let i = 0; i < barcode.length; i++) {
+                         const digit = parseInt(barcode[i]);
+                         bars += patterns[digit];
+                         if (i < barcode.length - 1) bars += '0'; // Separator
+                       }
+                       bars += '101'; // End pattern
+                       
+                       return bars.split('').map((bit, index) => {
+                         const width = Math.random() > 0.7 ? '3px' : Math.random() > 0.4 ? '2px' : '1px';
+                         return bit === '1' 
+                           ? `<div style="width: ${width}; height: 50px; background: #000; margin: 0;"></div>`
+                           : `<div style="width: ${width}; height: 50px; background: transparent; margin: 0;"></div>`;
+                       }).join('');
+                     })()}
+                   </div>
+                   <div style="font-family: monospace; font-size: 14px; letter-spacing: 1px;">${product.barcode}</div>
+                 </div>`
+            }
             <div class="barcode-number">${product.barcode}</div>
             <div class="stock-info">Stock: ${product.stocks} units</div>
           </div>
@@ -396,27 +439,34 @@ export default function Products() {
   };
 
   // Bulk print all barcode labels
-  const handleBulkPrintBarcodes = () => {
+  const handleBulkPrintBarcodes = async () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       alert("Please allow popups to print barcode labels");
       return;
     }
 
-    // Check if all barcodes are loaded
-    const productsWithoutBarcodes = products.filter(
-      (product) => !barcodeImages[product._id]
-    );
-    if (productsWithoutBarcodes.length > 0) {
-      alert(
-        `Barcode images not available for ${productsWithoutBarcodes.length} products. Please wait for them to load.`
-      );
-      return;
+    console.log("🖨️ Starting bulk print with fallback support...");
+
+    // Generate missing barcodes or use fallback
+    const updatedBarcodeImages = { ...barcodeImages };
+    
+    for (const product of products) {
+      if (!updatedBarcodeImages[product._id]) {
+        console.log(`🔄 Generating barcode for ${product.brand}...`);
+        const generatedUrl = await fetchBarcodeImage(product.barcode);
+        if (generatedUrl) {
+          updatedBarcodeImages[product._id] = generatedUrl;
+        }
+      }
     }
+
+    // Update state with any newly generated barcodes
+    setBarcodeImages(updatedBarcodeImages);
 
     const labelsHtml = products
       .map((product) => {
-        const barcodeImageUrl = barcodeImages[product._id];
+        const barcodeImageUrl = updatedBarcodeImages[product._id];
         return `
         <div class="barcode-label">
           <div class="product-info">
@@ -424,7 +474,33 @@ export default function Products() {
             <div class="description">${product.description}</div>
             <div class="category">${product.category}</div>
           </div>
-          <img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />
+          ${barcodeImageUrl 
+            ? `<img src="${barcodeImageUrl}" alt="Barcode: ${product.barcode}" class="barcode-image" />` 
+            : `<div class="barcode-fallback" style="border: 2px solid #000; padding: 10px; margin: 10px 0; text-align: center;">
+                 <div class="barcode-bars" style="display: flex; justify-content: center; align-items: end; height: 60px; margin-bottom: 5px;">
+                   ${(() => {
+                     const barcode = product.barcode.toString();
+                     const patterns = ['101', '110100', '100110', '111010', '011001', '101001', '001011', '010011', '110001', '100011'];
+                     let bars = '101'; // Start pattern
+                     
+                     for (let i = 0; i < barcode.length; i++) {
+                       const digit = parseInt(barcode[i]);
+                       bars += patterns[digit];
+                       if (i < barcode.length - 1) bars += '0'; // Separator
+                     }
+                     bars += '101'; // End pattern
+                     
+                     return bars.split('').map((bit, index) => {
+                       const width = Math.random() > 0.7 ? '3px' : Math.random() > 0.4 ? '2px' : '1px';
+                       return bit === '1' 
+                         ? `<div style="width: ${width}; height: 50px; background: #000; margin: 0;"></div>`
+                         : `<div style="width: ${width}; height: 50px; background: transparent; margin: 0;"></div>`;
+                     }).join('');
+                   })()}
+                 </div>
+                 <div style="font-family: monospace; font-size: 14px; letter-spacing: 1px;">${product.barcode}</div>
+               </div>`
+          }
           <div class="barcode-number">${product.barcode}</div>
           <div class="stock-info">Stock: ${product.stocks} units</div>
         </div>
@@ -1134,7 +1210,7 @@ export default function Products() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onProductDeleted={handleProductDeleted}
-        product={selectedProduct}
+        product={selectedProduct || null}
       />
 
       {/* Product Details Modal */}

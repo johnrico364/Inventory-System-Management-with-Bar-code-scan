@@ -201,7 +201,7 @@ export default function EditProductModal({
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/products/update/${product!._id}`,
+        `https://mom-inventory.vercel.app/api/products/update/${product!._id}`,
         {
           method: "PATCH",
           headers: {
@@ -241,7 +241,7 @@ export default function EditProductModal({
         (err as Error).message.includes("Failed to fetch")
       ) {
         console.error("🔌 Network Error - Possible causes:");
-        console.error("   - Server not running on localhost:4000");
+        console.error("   - Server not running on mom-inventory.vercel.app");
         console.error("   - CORS issues");
         console.error("   - Network connectivity problems");
         console.error("   - Firewall blocking the request");
@@ -287,23 +287,29 @@ export default function EditProductModal({
   });
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {showConfirmation ? (
         // Confirmation Dialog
         <div
-          className={`p-6 border w-96 shadow-lg rounded-md ${
-            darkMode ? "bg-gray-800 border-gray-700" : "bg-white"
+          className={`w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl rounded-2xl border-2 ${
+            darkMode ? "bg-gray-800 border-blue-800" : "bg-white border-blue-200"
           }`}
         >
-          <div className="text-center">
-            <h3
-              className={`text-lg font-medium mb-4 ${
-                darkMode ? "text-white" : "text-gray-900"
-              }`}
-            >
-              Confirm Product Changes
-            </h3>
-
+          {/* Header */}
+          <div className={`px-6 py-4 rounded-t-2xl ${
+            darkMode 
+              ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800" 
+              : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
+          }`}>
+            <div className="flex items-center space-x-3">
+              <div className="w-1.5 h-6 bg-blue-400 rounded-r-lg"></div>
+              <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                Confirm Product Changes
+              </h3>
+            </div>
+          </div>
+          
+          <div className="p-6">
             <div className="text-left space-y-3 mb-6">
               <div>
                 <span
@@ -409,14 +415,18 @@ export default function EditProductModal({
               <button
                 type="button"
                 onClick={() => setShowConfirmation(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                className={`px-6 py-3 text-sm font-semibold border-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                  darkMode
+                    ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600 focus:ring-gray-500"
+                    : "text-gray-700 bg-gray-100 border-gray-300 hover:bg-gray-200 focus:ring-gray-400"
+                }`}
               >
                 Back to Edit
               </button>
               <button
                 type="button"
                 onClick={handleConfirmSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="px-6 py-3 text-sm font-semibold text-white bg-green-700 border-2 border-green-800 rounded-xl hover:bg-green-800 transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-green-500"
               >
                 Confirm & Update
               </button>
@@ -426,30 +436,33 @@ export default function EditProductModal({
       ) : (
         // Main Form
         <div
-          className={`p-5 border w-96 shadow-lg rounded-md ${
-            darkMode ? "bg-gray-800 border-gray-700" : "bg-white"
+          className={`w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl rounded-2xl border-2 ${
+            darkMode ? "bg-gray-800 border-blue-800" : "bg-white border-blue-200"
           }`}
         >
-          <div className="mt-3">
-            <div className="flex justify-between items-center mb-4">
-              <h3
-                className={`text-lg font-medium ${
-                  darkMode ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Edit Product
-              </h3>
+          {/* Header */}
+          <div className={`px-6 py-4 rounded-t-2xl ${
+            darkMode 
+              ? "bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800" 
+              : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-1.5 h-6 bg-blue-400 rounded-r-lg"></div>
+                <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                  Edit Product
+                </h3>
+              </div>
               <button
                 onClick={handleClose}
-                className={`${
-                  darkMode
-                    ? "text-gray-400 hover:text-gray-200"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
+                className="text-white hover:text-blue-200 transition-colors p-2 rounded-lg border border-blue-600 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 ✕
               </button>
             </div>
+          </div>
+          
+          <div className="p-6">
 
             {error && (
               <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -467,7 +480,8 @@ export default function EditProductModal({
                 >
                   Category *
                 </label>
-                <select
+                <input
+                  type="text"
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
@@ -480,13 +494,11 @@ export default function EditProductModal({
                       : "border-gray-300"
                   } ${
                     darkMode
-                      ? "bg-gray-700 text-white"
+                      ? "bg-gray-700 text-white placeholder-gray-400"
                       : "bg-white text-gray-900"
                   }`}
-                >
-                  <option value="">Select category</option>
-                  <option value="bearing">Bearing</option>
-                </select>
+                  placeholder="Enter category"
+                />
                 {validationErrors.category && (
                   <p className="text-red-500 text-xs mt-1">
                     {validationErrors.category}
@@ -531,7 +543,11 @@ export default function EditProductModal({
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-white-700 mb-1">
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    darkMode ? "text-white" : "text-gray-700"
+                  }`}
+                >
                   Description
                 </label>
                 <textarea
@@ -543,7 +559,13 @@ export default function EditProductModal({
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     validationErrors.description
                       ? "border-red-500"
+                      : darkMode
+                      ? "border-gray-600"
                       : "border-gray-300"
+                  } ${
+                    darkMode
+                      ? "bg-gray-700 text-white placeholder-gray-400"
+                      : "bg-white text-gray-900"
                   }`}
                   placeholder="Enter product description"
                 />
@@ -553,7 +575,9 @@ export default function EditProductModal({
                       {validationErrors.description}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500 ml-auto">
+                  <p className={`text-xs ml-auto ${
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
                     {formData.description.length}/500 characters
                   </p>
                 </div>
@@ -667,14 +691,18 @@ export default function EditProductModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className={`px-6 py-3 text-sm font-semibold border-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                    darkMode
+                      ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600 focus:ring-gray-500"
+                      : "text-gray-700 bg-gray-100 border-gray-300 hover:bg-gray-200 focus:ring-gray-400"
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !isFormValid()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 text-sm font-semibold text-white bg-blue-800 border-2 border-blue-900 rounded-xl hover:bg-blue-900 transition-colors focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Updating..." : "Update Product"}
                 </button>
