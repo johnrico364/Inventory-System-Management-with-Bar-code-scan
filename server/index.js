@@ -12,7 +12,7 @@ const app = express();
 // CORS configuration
 app.use(cors({
   // origin: 'http://localhost:3000',
-  origin: 'https://mom-inventory-system.vercel.app/',
+  origin: 'https://mom-inventory-system.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
