@@ -10,13 +10,31 @@ const transactionRoutes = require("./routes/transactionRoutes");
 const app = express();
 
 // CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://mom-inventory-system.vercel.app',
+  'https://mom-inventory-system.vercel.app/'
+];
+
 app.use(cors({
-  // origin: 'http://localhost:3000',
-  origin: 'https://mom-inventory-system.vercel.app/',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: function(origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 app.use(express.json());
 
