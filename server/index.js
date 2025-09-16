@@ -10,48 +10,13 @@ const transactionRoutes = require("./routes/transactionRoutes");
 const app = express();
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://mom-inventory.vercel.app',
-  'https://mom-inventory.vercel.app/'
-];
-
-// Simplified CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if the origin is in the allowed list
-    const allowed = allowedOrigins.some(allowedUrl => {
-      return origin === allowedUrl || 
-             origin.replace(/\/$/, '') === allowedUrl.replace(/\/$/, '');
-    });
-    
-    callback(null, allowed);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+app.use(cors({
+  // origin: 'http://localhost:3000',
+  origin: 'https://mom-inventory-system.vercel.app/',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 204,
-  preflightContinue: false
-};
-
-// Apply CORS to all routes
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
-
-// Add CORS headers manually as a fallback
-app.use(function(req, res, next) {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || allowedOrigins.includes(origin + '/')) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  next();
-});
+  credentials: true
+}));
 
 app.use(express.json());
 
