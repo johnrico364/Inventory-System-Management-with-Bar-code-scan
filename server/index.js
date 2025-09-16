@@ -16,34 +16,42 @@ const allowedOrigins = [
   'https://mom-inventory.vercel.app/'
 ];
 
+// Simplified CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if the origin is in the allowed list or is a subdomain
-    const originUrl = new URL(origin);
-    const isAllowed = allowedOrigins.some(allowed => {
-      const allowedUrl = new URL(allowed.endsWith('/') ? allowed : `${allowed}/`);
-      return originUrl.hostname === allowedUrl.hostname;
+    // Check if the origin is in the allowed list
+    const allowed = allowedOrigins.some(allowedUrl => {
+      return origin === allowedUrl || 
+             origin.replace(/\/$/, '') === allowedUrl.replace(/\/$/, '');
     });
     
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    callback(null, allowed);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  preflightContinue: false
 };
 
+// Apply CORS to all routes
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
-// Handle preflight requests
-app.options('*', cors(corsOptions));
+// Add CORS headers manually as a fallback
+app.use(function(req, res, next) {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes(origin + '/')) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 app.use(express.json());
 
