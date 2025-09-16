@@ -6,7 +6,7 @@ import EditProductModal from "./modal/EditProductModal";
 import DeleteProductModal from "./modal/DeleteProductModal";
 import StockInModal from "./modal/StockInModal";
 import StockOutModal from "./modal/StockOutModal";
-import { useDarkMode } from "../context/DarkModeContext";
+import { useDarkMode } from "../../context/DarkModeContext";
 import ProductDetails from "./Productdetails";
 interface Product {
   _id: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useDarkMode } from '../../context/DarkModeContext';
+import { useDarkMode } from '../../../context/DarkModeContext';
 
 interface StockInModalProps {
   isOpen: boolean;

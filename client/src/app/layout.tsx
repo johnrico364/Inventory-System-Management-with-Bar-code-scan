@@ -18,7 +18,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <DarkModeProvider>
           <div className="min-h-screen">
-            <Navbar />
+            {/* <Navbar /> */}
             {children}
           </div>
         </DarkModeProvider>

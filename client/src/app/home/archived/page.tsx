@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import JsBarcode from 'jsbarcode';
-import { useDarkMode } from '../context/DarkModeContext';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface ArchivedProduct {
   _id: string;

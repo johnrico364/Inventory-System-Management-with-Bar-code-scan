@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { useDarkMode } from '../context/DarkModeContext';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface ProductDetailsProps {
   product: {

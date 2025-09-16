@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useDarkMode } from "../../context/DarkModeContext";
+import { useDarkMode } from "../../../context/DarkModeContext";
 
 interface EditProductModalProps {
   isOpen: boolean;

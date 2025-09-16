@@ -25,10 +25,10 @@ export default function Navbar() {
   }, []);
 
   const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/products', label: 'Products', icon: '📦' },
-    { href: '/archived', label: 'Archived', icon: '🗂️' },
-    { href: '/transaction', label: 'Transaction', icon: '📜' },
+    { href: '/home/dashboard', label: 'Dashboard', icon: '📊' },
+    { href: '/home/products', label: 'Products', icon: '📦' },
+    { href: '/home/archived', label: 'Archived', icon: '🗂️' },
+    { href: '/home/transaction', label: 'Transaction', icon: '📜' },
     // { href: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 
