@@ -1,20 +1,65 @@
-'use client';
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already logged in
+    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    if (user.isLoggedIn) {
+      router.push("/home/dashboard");
+    }
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    alert(`Username: ${username}\nPassword: ${password}`);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:4000/api/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      if (data.isLoggedIn) {
+        // Store both username and isLoggedIn status
+        sessionStorage.setItem(
+          "user",
+          JSON.stringify({
+            username: data.username,
+            isLoggedIn: data.isLoggedIn,
+          })
+        );
+        router.push("/home/dashboard");
+      }
+    } catch (error: any) {
+      setError(error.message);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-sm w-full p-8 border border-gray-300 rounded-lg shadow-md bg-white">
         <h2 className="text-2xl font-semibold mb-6 text-center">Login</h2>
+        {error && (
+          <div className="mb-4 p-2 bg-red-100 text-red-600 rounded">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">
