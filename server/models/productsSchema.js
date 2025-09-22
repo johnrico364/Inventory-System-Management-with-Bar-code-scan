@@ -8,7 +8,7 @@ const productSchema = new Schema(
     description: { type: String, required: true },
     category: { type: String, required: true },
     stocks: { type: Number, required: true },
-    boxColor: { type: String, required: true, enum: ["Black", "White"] },
+    boxColor: { type: String, required: true,},
     boxNumber: { type: String, required: true },
     isDeleted: { type: Boolean, required: true, default: false },
   },
