@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
-import { useDarkMode } from '../context/DarkModeContext';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface Product {
   _id: string;
