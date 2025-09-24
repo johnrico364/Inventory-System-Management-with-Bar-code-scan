@@ -690,20 +690,18 @@ export default function AddProductModal({
                 >
                   Box Color
                 </label>
-                <select
+                <input
+                  type="text"
                   name="boxColor"
                   value={formData.boxColor}
                   onChange={handleInputChange}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     darkMode
-                      ? "border-gray-600 bg-gray-700 text-white"
-                      : "border-gray-300 bg-white text-gray-900"
+                      ? "border-gray-600 bg-gray-700 text-white placeholder-gray-400"
+                      : "border-gray-300 bg-white text-gray-900 placeholder-gray-500"
                   }`}
-                >
-                  <option value="">Select box color</option>
-                  <option value="Black">Black</option>
-                  <option value="White">White</option>
-                </select>
+                  placeholder="Enter box color"
+                />
               </div>
 
               {/* Box number */}

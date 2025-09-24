@@ -381,7 +381,7 @@ export default function Products() {
             <div class="barcode-container">
               <svg class="barcode"></svg>
             </div>
-            <div class="stock-info">Stock: ${product.stocks} units</div>
+            <div class="stock-info">Box number: ${product.boxNumber}</div>
           </div>
           <script>
             JsBarcode('.barcode', '${product.barcode}', {
