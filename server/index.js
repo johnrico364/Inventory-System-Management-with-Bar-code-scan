@@ -21,8 +21,11 @@ app.use(express.json());
 // Serve static files from barcodes directory
 app.use("/barcodes", express.static(path.join(__dirname, "barcodes")));
 
+// const dbURI =
+//   "mongodb+srv://john:John2004@personalproject.fkzdsfo.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=PersonalProject";
+
 const dbURI =
-  "mongodb+srv://john:John2004@personalproject.fkzdsfo.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=PersonalProject";
+  "mongodb+srv://john:John2004@personalproject.davx80l.mongodb.net/mom_inventory?retryWrites=true&w=majority&appName=personalProject";
 
 mongoose.connect(dbURI).then(() => {
   console.log("Connected to MongoDB");
