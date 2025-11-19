@@ -682,40 +682,6 @@ export default function Dashboard() {
           {/* Low Stock Alerts */}
           <LowStockAlert products={products} />
         </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-blue-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button 
-              aria-label="View All Products"
-              onClick={() => window.location.href = '/products'}
-              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <div className="text-2xl mb-2" aria-hidden="true">📋</div>
-              <h3 className="font-medium text-white">View All Products</h3>
-              <p className="text-sm text-blue-100">Manage your inventory</p>
-            </button>
-            <button 
-              aria-label="Add New Product"
-              onClick={() => window.location.href = '/products?add=true'}
-              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <div className="text-2xl mb-2" aria-hidden="true">➕</div>
-              <h3 className="font-medium text-white">Add New Product</h3>
-              <p className="text-sm text-blue-100">Expand your inventory</p>
-            </button>
-            <button 
-              aria-label="Low Stock Items"
-              onClick={() => window.location.href = '/products?filter=low-stock'}
-              className="bg-blue-800 border border-blue-900 rounded-lg p-4 hover:shadow-lg transition-shadow text-left text-white hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <div className="text-2xl mb-2" aria-hidden="true">⚠️</div>
-              <h3 className="font-medium text-white">Low Stock Items</h3>
-              <p className="text-sm text-blue-100">Review and restock</p>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
