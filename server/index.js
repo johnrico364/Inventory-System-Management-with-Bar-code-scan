@@ -25,10 +25,13 @@ app.use("/barcodes", express.static(path.join(__dirname, "barcodes")));
 //   "mongodb+srv://john:John2004@personalproject.fkzdsfo.mongodb.net/inventory_system?retryWrites=true&w=majority&appName=PersonalProject";
 
 const dbURI =
-  "mongodb+srv://john:John2004@personalproject.davx80l.mongodb.net/mom_inventory?retryWrites=true&w=majority&appName=personalProject";
+  "mongodb+srv://johnrico:john2004@projectsystems.cg2cala.mongodb.net/mom_inventory?appName=ProjectSystems";
+  
 
 mongoose.connect(dbURI).then(() => {
   console.log("Connected to MongoDB");
+}).catch((err) => {
+  console.log(err);
 });
 
 app.listen(4000, () => console.log(`Listening on port 4000`));
